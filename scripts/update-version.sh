@@ -24,18 +24,7 @@ case "$pkg" in
   maa-unified|steamcommunity302|usbeam-hosts-editor)
     # 以检查脚本输出的 JSON 为准(单一事实源),避免重复抓取解析上游
     json="$("$REPO_ROOT/scripts/check-$pkg.sh")"
-    if [[ "$pkg" == "maa-unified" ]]; then
-      # pkgver=${_assetver}.r0.g${_commit} 是模板行,由前两个变量派生,不可整体替换
-      keys=(_assetver _commit)
-    else
-      keys=(pkgver pkgdate)
-    fi
-    for key in "${keys[@]}"; do
-      val="$(echo "$json" | jq -r ".${key} // empty")"
-      [[ -n "$val" ]] || { echo "error: 检查脚本未提供变量 $key" >&2; exit 1; }
-      # 值含斜杠(pkgdate 形如 2026/02),用 | 作 sed 分隔符
-      sed -i "s|^${key}=.*|${key}=${val}|" "$pkgdir/PKGBUILD"
-    done
+    python3 "$REPO_ROOT/scripts/apply-updates.py" "$pkgdir/PKGBUILD" "$json"
     ;;
   *)
     sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
