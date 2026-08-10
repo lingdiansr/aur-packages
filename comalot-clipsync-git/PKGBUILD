@@ -1,0 +1,30 @@
+# Maintainer: ldsr <local>
+# Based on AUR comalot-clipsync-git, adapted for lingdiansr/clipsync fork
+
+_pkgname=clipsync
+pkgname=comalot-clipsync-git
+pkgver=v1.2.0.r2.d6f4cbe
+pkgrel=1
+pkgdesc="Wayland <-> X11 clipboard sync for xwayland-satellite compositors — lingdiansr fork with x2w text sync fixes"
+arch=('any')
+url="https://github.com/lingdiansr/clipsync"
+license=('MIT')
+depends=('xclip' 'wl-clipboard' 'clipnotify' 'xxhash')
+makedepends=('git')
+provides=("$_pkgname")
+conflicts=("$_pkgname" 'clipsync-git')
+source=("git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$_pkgname"
+    printf "v1.2.0.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+    cd "$_pkgname"
+    install -Dm755 clipsync     "${pkgdir}/usr/bin/clipsync"
+    install -Dm755 clipsync-x2w "${pkgdir}/usr/bin/clipsync-x2w"
+    install -Dm755 clipsync-w2x "${pkgdir}/usr/bin/clipsync-w2x"
+    install -Dm644 clipsync.service "${pkgdir}/usr/lib/systemd/user/clipsync.service"
+}

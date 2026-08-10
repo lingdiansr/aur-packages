@@ -1,0 +1,142 @@
+# 每日检查 GitHub 上游版本,自动更新 AUR 包并推送
+# 结构参考:https://github.com/zerx-lab/actions(.github/workflows/check-updates.yml)
+# 版本检测用 nvchecker:https://nvchecker.readthedocs.io/
+# 流程:check(nvchecker 对比 old.json) → update(改 PKGBUILD+构建验证+发 AUR) → commit(更新 old.json 并提交仓库)
+name: 检查并更新 AUR 包
+
+on:
+  schedule:
+    - cron: "0 8 * * *" # 每日 UTC 08:00
+  workflow_dispatch: # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: 检查上游更新
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    outputs:
+      has_updates: ${{ steps.detect.outputs.has_updates }}
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: 安装工具
+        run: pacman -Syu --noconfirm --needed nvchecker jq
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: 运行 nvchecker 检查上游
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          printf '[keys]\ngithub = "%s"\n' "$GITHUB_TOKEN" > keyfile.toml
+          nvchecker --file nvchecker.toml --keyfile keyfile.toml
+          echo "new.json:"
+          cat new.json
+      - name: 检测需要更新的包
+        id: detect
+        run: |
+          updates="$(nvcmp --file nvchecker.toml --json || true)"
+          echo "nvcmp: $updates"
+          if [[ "$updates" == "[]" || -z "$updates" ]]; then
+            echo "所有包均为最新"
+            echo "has_updates=false" >> "$GITHUB_OUTPUT"
+            echo 'matrix={"include":[]}' >> "$GITHUB_OUTPUT"
+          else
+            matrix="$(echo "$updates" | jq -c '{include: [.[] | {pkg: .name, version: .newver}]}')"
+            echo "has_updates=true" >> "$GITHUB_OUTPUT"
+            echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          fi
+
+  update:
+    name: 更新 ${{ matrix.pkg }}
+    needs: check
+    if: needs.check.outputs.has_updates == 'true'
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.check.outputs.matrix) }}
+    steps:
+      - name: 安装工具
+        run: pacman -Syu --noconfirm --needed pacman-contrib openssh jq
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: 建立构建用户
+        run: |
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          chown -R builder:builder .
+      - name: 更新包版本
+        env:
+          PKG: ${{ matrix.pkg }}
+          VERSION: ${{ matrix.version }}
+        run: |
+          su -w PKG,VERSION builder -c 'scripts/update-version.sh "$PKG" "$VERSION"'
+      - name: 构建验证
+        env:
+          PKG: ${{ matrix.pkg }}
+        run: |
+          su -w PKG builder -c 'cd "$PKG" && CI=1 makepkg --syncdeps --noconfirm --noarchive'
+      - name: 发布到 AUR
+        if: ${{ secrets.AUR_SSH_KEY != '' }}
+        env:
+          PKG: ${{ matrix.pkg }}
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
+          AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
+        run: scripts/publish.sh "$PKG"
+      - name: 上传更新文件
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-${{ matrix.pkg }}
+          path: ${{ matrix.pkg }}/
+          if-no-files-found: error
+
+  commit:
+    name: 提交更新到仓库
+    needs: [check, update]
+    if: needs.check.outputs.has_updates == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: 下载更新文件
+        uses: actions/download-artifact@v4
+        with:
+          path: .artifacts
+          pattern: updated-*
+      - name: 恢复更新并同步 old.json
+        env:
+          MATRIX: ${{ needs.check.outputs.matrix }}
+        run: |
+          for d in .artifacts/updated-*; do
+            [ -d "$d" ] || continue
+            pkg="${d#.artifacts/updated-}"
+            cp -a "$d/." "$pkg/"
+            echo "restored $pkg"
+          done
+          MATRIX="$MATRIX" python3 - <<'PY'
+          import json, os
+          matrix = json.loads(os.environ['MATRIX'])
+          with open('old.json') as f:
+              old = json.load(f)
+          for e in matrix.get('include', []):
+              pkg = e['pkg']
+              if os.path.isdir(f'.artifacts/updated-{pkg}'):
+                  old['data'][pkg] = {'version': e['version']}
+          with open('old.json', 'w') as f:
+              json.dump(old, f, indent=2)
+              f.write('\n')
+          PY
+      - name: 提交并推送
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "无变更,跳过提交"
+          else
+            git commit -m "更新 AUR 包到上游最新版本"
+            git push
+          fi

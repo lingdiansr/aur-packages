@@ -1,0 +1,7 @@
+# makepkg 构建产物与 source 缓存
+src/
+pkg/
+*.pkg.tar.zst
+*.tar.gz
+*.zip
+*.log

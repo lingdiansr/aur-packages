@@ -1,0 +1,33 @@
+# nvchecker 配置:为 GitHub 上游源的 AUR 包检查新版本
+# 文档:https://nvchecker.readthedocs.io/en/latest/usage.html
+# 运行:nvchecker --file nvchecker.toml --keyfile keyfile.toml
+# 对比:nvcmp --file nvchecker.toml --json
+#
+# 不在本文件中的包(usbeam-hosts-editor / steamcommunity302 / securelink)
+# 上游不是 GitHub,comalot-clipsync-git 是 -git 源无需版本检查,均不自动化。
+
+[__config__]
+oldver = "old.json"
+newver = "new.json"
+
+# 上游 tag 形如 v1.3,v1.2,...;use_max_tag 取最大 tag,prefix 去掉 v 前缀
+[jetbrains-lxgw-nerd-mono-ttf]
+source = "github"
+github = "lvbibir/JetBrainsLxgwNerdMono"
+use_max_tag = true
+prefix = "v"
+
+# 上游 tag 形如 v4.0.10,v4.0.9,...;pkgver 对应去掉 v 的 tag
+[vscode-config-helper-appimage]
+source = "github"
+github = "VSCodeConfigHelper/v4"
+use_max_tag = true
+prefix = "v"
+
+# 主仓 CI 产物无法匿名获取,版本由 fork(lingdiansr/MaaAssistantArknights)的
+# Release(固定 tag maaunified-linux-x64)的 asset 名编码:
+#   MAAUnified-v<assetver>-<commit>-linux-x64.tar.gz
+# custom 脚本解析出 pkgver 格式  <assetver>.r0.g<commit>
+[maa-unified]
+source = "cmd"
+cmd = "scripts/check-maa-unified.sh"

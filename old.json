@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "data": {
+    "jetbrains-lxgw-nerd-mono-ttf": {
+      "version": "1.3"
+    },
+    "vscode-config-helper-appimage": {
+      "version": "4.0.10"
+    },
+    "maa-unified": {
+      "version": "6.16.4.r0.g4044b8ec5"
+    }
+  }
+}

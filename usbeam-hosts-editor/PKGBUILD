@@ -1,0 +1,208 @@
+# Maintainer: lingdianshiren <ldsrwu@foxmail.com>
+pkgname=usbeam-hosts-editor
+pkgver=5.0.1
+pkgdate=2026/01
+pkgrel=1
+pkgdesc="羽翼城制作的UsbEAm Hosts Editor,多平台hosts修改工具,使用uhe命令启动"
+url="https://www.dogfight360.com/blog/18627/"
+arch=('x86_64')
+# 与同作者 steamcommunity302 一致
+license=('CC-BY-NC-4.0')
+optdepends=(
+  # 图形化提权(任选其一)
+  'zenity: graphical password prompt — GTK alternative'
+  'kdialog: graphical password prompt — KDE alternative'
+  'polkit: pkexec graphical privilege elevation — alternative to zenity/kdialog'
+
+  # 终端回退(任选其一)
+  'gnome-terminal: terminal fallback — GNOME'
+  'konsole: terminal fallback — KDE Plasma'
+  'xfce4-terminal: terminal fallback — XFCE'
+  'mate-terminal: terminal fallback — MATE'
+  'lxterminal: terminal fallback — LXDE'
+  'xterm: terminal fallback — minimal / universal'
+)
+depends=(
+  # self-contained .NET 单文件运行时 NEEDED
+  'glibc' 'gcc-libs' 'zlib'
+  # libSkiaSharp.so NEEDED
+  'brotli' 'bzip2' 'expat' 'fontconfig' 'freetype2' 'libpng'
+  # Avalonia X11 后端运行时 dlopen
+  'libx11' 'libxcursor' 'libxrandr' 'libxi' 'libxext' 'libice' 'libsm' 'libgl'
+  # 提权与 X11 授权
+  'sudo' 'xorg-xhost'
+)
+makedepends=('python')
+source=("https://www.dogfight360.com/blog/wp-content/uploads/${pkgdate}/UsbEAm_Hosts_Editor.${pkgver}_X64.tar.gz")
+md5sums=('5da83cf0d86f4c99ba907ef8a9bffd69')
+options=(!strip)
+
+_install_dir="/usr/lib/usbeam-hosts-editor"
+
+prepare() {
+  local _root="${srcdir}/UsbEAm Hosts Editor"
+  local _main="${_root}/UsbEAm Hosts Editor"
+
+  # 校验关键文件存在(结构变更立即报错)
+  for f in "${_main}" "${_root}/libSkiaSharp.so" "${_root}/libHarfBuzzSharp.so" "${_root}/ip2region.xdb"; do
+    [ -e "$f" ] || { msg2 "ERROR: 上游缺失关键文件: $f"; return 1; }
+  done
+
+  # --- 1. 派生 uhe 启动器 ---
+  # 上游 .sh 仅支持终端 sudo -S(.desktop 启动时无 stdin 会读空密码失败),
+  # 移植 steamcommunity302 的智能提权逻辑:图形密码框 -> pkexec -> 终端回退
+  cat > "${srcdir}/uhe" << 'LAUNCHER_EOF'
+#!/bin/bash
+# ============================================================
+# UsbEAm Hosts Editor 启动器 - 自动选择 root 提权方式
+# 修改 /etc/hosts 需要 root;保留 X11 环境变量供 GUI 使用
+# ============================================================
+INSTALL_DIR="/usr/lib/usbeam-hosts-editor"
+EXEC_FILE="${INSTALL_DIR}/UsbEAm Hosts Editor"
+
+# xhost 配置(允许 root 访问当前用户 X11 会话)
+if command -v xhost >/dev/null 2>&1; then
+    xhost +SI:localuser:root >/dev/null 2>&1 || true
+fi
+
+# 保存当前用户的 X11 环境变量(提权后 root 需要)
+CURRENT_DISPLAY="${DISPLAY:-:0}"
+CURRENT_XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
+
+# 检查主程序是否存在
+if [ ! -f "$EXEC_FILE" ]; then
+    if command -v zenity >/dev/null 2>&1; then
+        zenity --error --text="错误: 未找到主程序 UsbEAm Hosts Editor" --title="启动失败"
+    elif command -v kdialog >/dev/null 2>&1; then
+        kdialog --error "错误: 未找到主程序 UsbEAm Hosts Editor" --title "启动失败"
+    else
+        echo -e "\033[31m 错误: 未找到主程序 UsbEAm Hosts Editor \033[0m" >&2
+    fi
+    exit 1
+fi
+
+# 已是 root 直接运行
+if [ "$(id -u)" -eq 0 ]; then
+    export DISPLAY="${DISPLAY:-$CURRENT_DISPLAY}"
+    export XAUTHORITY="${XAUTHORITY:-$CURRENT_XAUTHORITY}"
+    exec "$EXEC_FILE"
+fi
+
+# ============================================================
+# 按优先级尝试各种提权方式
+# ============================================================
+
+# 1. 图形密码框 + sudo(zenity/kdialog)
+if command -v sudo >/dev/null 2>&1; then
+    # 1a. zenity (GTK 环境)
+    if command -v zenity >/dev/null 2>&1; then
+        PASSWORD=$(zenity --password --title="需要管理员权限" --text="请输入密码以运行 UsbEAm Hosts Editor:")
+        if [ $? -eq 0 ] && [ -n "$PASSWORD" ]; then
+            echo "$PASSWORD" | sudo -SE bash -c "export DISPLAY='$CURRENT_DISPLAY'; export XAUTHORITY='$CURRENT_XAUTHORITY'; exec '$EXEC_FILE'"
+            exit $?
+        fi
+        exit 1  # 用户取消了密码框
+    fi
+
+    # 1b. kdialog (KDE 环境)
+    if command -v kdialog >/dev/null 2>&1; then
+        PASSWORD=$(kdialog --password "请输入密码以运行 UsbEAm Hosts Editor:")
+        if [ $? -eq 0 ] && [ -n "$PASSWORD" ]; then
+            echo "$PASSWORD" | sudo -SE bash -c "export DISPLAY='$CURRENT_DISPLAY'; export XAUTHORITY='$CURRENT_XAUTHORITY'; exec '$EXEC_FILE'"
+            exit $?
+        fi
+        exit 1  # 用户取消了密码框
+    fi
+fi
+
+# 2. pkexec(经 env 传递 X11 环境变量,避免临时脚本变量不展开)
+if command -v pkexec >/dev/null 2>&1; then
+    pkexec env DISPLAY="$CURRENT_DISPLAY" XAUTHORITY="$CURRENT_XAUTHORITY" "$EXEC_FILE"
+    exit $?
+fi
+
+# 3. 最后的回退 - 打开终端运行
+TERMINALS=("gnome-terminal" "konsole" "xfce4-terminal" "mate-terminal" "lxterminal" "xterm")
+for term in "${TERMINALS[@]}"; do
+    if command -v "$term" >/dev/null 2>&1; then
+        case "$term" in
+            "gnome-terminal")
+                exec gnome-terminal -- bash -c "echo '需要管理员权限运行'; sudo '$EXEC_FILE'; echo ''; read -p '按回车键退出...'"
+                ;;
+            "konsole")
+                exec konsole -e bash -c "echo '需要管理员权限运行'; sudo '$EXEC_FILE'; echo ''; read -p '按回车键退出...'"
+                ;;
+            *)
+                exec "$term" -e "bash -c \"echo '需要管理员权限运行'; sudo '$EXEC_FILE'; echo ''; read -p '按回车键退出...'\""
+                ;;
+        esac
+    fi
+done
+
+# 以上均失败
+echo -e "\033[31m 错误: 无法找到合适的权限提升工具 \033[0m" >&2
+echo -e "\033[33m 请使用命令行运行: sudo '/usr/lib/usbeam-hosts-editor/UsbEAm Hosts Editor' \033[0m" >&2
+exit 1
+LAUNCHER_EOF
+  chmod +x "${srcdir}/uhe"
+
+  # --- 2. 派生 .desktop ---
+  cat > "${srcdir}/usbeam-hosts-editor.desktop" << 'DESKTOP_EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=UsbEAm Hosts Editor
+GenericName=Hosts Editor
+Comment=Cross-platform hosts file editor for Steam/Origin/Uplay etc.
+Comment[zh_CN]=多平台hosts修改工具(Steam/Origin/Uplay等加速)
+Exec=/usr/bin/uhe
+Icon=/usr/share/pixmaps/usbeam-hosts-editor.png
+Terminal=false
+Categories=Network;
+StartupNotify=true
+Keywords=hosts;steam;origin;uplay;epic;
+DESKTOP_EOF
+
+  # --- 3. 提取内嵌图标(取最大方形 PNG,过滤界面截图) ---
+  python3 - "${_main}" "${srcdir}/usbeam-hosts-editor.png" << 'PY_EOF'
+import re, sys
+
+src, dst = sys.argv[1], sys.argv[2]
+data = open(src, 'rb').read()
+magic = b'\x89PNG\r\n\x1a\n'
+best = None
+for off in [m.start() for m in re.finditer(re.escape(magic), data)]:
+    if off + 33 > len(data):
+        continue
+    w = int.from_bytes(data[off+16:off+20], 'big')
+    h = int.from_bytes(data[off+20:off+24], 'big')
+    if w != h:  # 仅方形,避免窗口截图
+        continue
+    iend = data.find(b'IEND', off + 8)
+    if iend < 0:
+        continue
+    if best is None or w * h > best[0]:
+        best = (w * h, off, iend + 8)
+if best is None:
+    sys.exit('ERROR: 未在二进制中找到方形 PNG 图标')
+open(dst, 'wb').write(data[best[1]:best[2]])
+PY_EOF
+  [ -s "${srcdir}/usbeam-hosts-editor.png" ] || { msg2 "ERROR: 图标提取失败"; return 1; }
+}
+
+package() {
+  local _root="${srcdir}/UsbEAm Hosts Editor"
+  local _main="${_root}/UsbEAm Hosts Editor"
+
+  # 主程序与运行时本机库必须同目录(.NET 单文件相对加载 libSkiaSharp 等)
+  install -Dm755 "${_main}" "${pkgdir}${_install_dir}/UsbEAm Hosts Editor"
+  install -Dm644 "${_root}/libSkiaSharp.so" "${pkgdir}${_install_dir}/libSkiaSharp.so"
+  install -Dm644 "${_root}/libHarfBuzzSharp.so" "${pkgdir}${_install_dir}/libHarfBuzzSharp.so"
+  install -Dm644 "${_root}/ip2region.xdb" "${pkgdir}${_install_dir}/ip2region.xdb"
+
+  install -Dm755 "${srcdir}/uhe" "${pkgdir}/usr/bin/uhe"
+  install -Dm644 "${srcdir}/usbeam-hosts-editor.png" \
+    "${pkgdir}/usr/share/pixmaps/usbeam-hosts-editor.png"
+  install -Dm644 "${srcdir}/usbeam-hosts-editor.desktop" \
+    "${pkgdir}/usr/share/applications/usbeam-hosts-editor.desktop"
+}

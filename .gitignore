@@ -1,0 +1,19 @@
+# makepkg 构建产物
+src/
+pkg/
+*.pkg.tar.zst
+*.pkg.tar.xz
+
+# 下载的源码归档（源均为远程 URL，本地归档不入库）
+*.tar.gz
+*.zip
+*.AppImage
+
+# 本地 git 克隆（comalot-clipsync-git 的源目录）
+clipsync/
+
+# 测试残留
+.playwright-mcp/
+
+# nvchecker 运行产物
+new.json

@@ -1,0 +1,14 @@
+pkgbase = vscode-config-helper-appimage
+	pkgdesc = VS Code C++ 配置器
+	pkgver = 4.0.10
+	pkgrel = 1
+	url = https://github.com/VSCodeConfigHelper/v4
+	arch = x86_64
+	license = GPL-3.0
+	depends = git
+	depends = code
+	options = !strip
+	source = https://github.com/VSCodeConfigHelper/v4/releases/download/v4.0.10/vscch_4.0.10_amd64.AppImage
+	sha256sums = 7c05caed65edca6ec43e50bccfd73e94d476c6f65590d3b7e5b3eda1b9368af8
+
+pkgname = vscode-config-helper-appimage

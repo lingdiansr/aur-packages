@@ -1,0 +1,20 @@
+# Maintainer: lingdianshiren <ldsrwu@foxmail.com>
+pkgname=vscode-config-helper-appimage
+pkgver=4.0.10
+pkgrel=1
+#epoch=
+pkgdesc="VS Code C++ 配置器 "
+url="https://github.com/VSCodeConfigHelper/v4"
+arch=('x86_64')
+license=('GPL-3.0')
+depends=('git' 'code')
+source=("https://github.com/VSCodeConfigHelper/v4/releases/download/v${pkgver}/vscch_${pkgver}_amd64.AppImage")
+#        https://github.com/VSCodeConfigHelper/v4/releases/download/v${pkgver}/vscch_4.0.10_amd64.AppImage
+sha256sums=('7c05caed65edca6ec43e50bccfd73e94d476c6f65590d3b7e5b3eda1b9368af8')
+options=(!strip)
+# package() {
+
+#     # 1. 解压文件
+#     # 7z x "${srcdir}/vscch_v${pkgver}_Linux.7z"
+    
+# }
