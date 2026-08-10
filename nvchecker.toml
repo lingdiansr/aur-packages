@@ -1,14 +1,21 @@
-# nvchecker 配置:为 GitHub 上游源的 AUR 包检查新版本
+# nvchecker 配置:为各 AUR 包检查上游新版本
 # 文档:https://nvchecker.readthedocs.io/en/latest/usage.html
 # 运行:nvchecker --file nvchecker.toml --keyfile keyfile.toml
 # 对比:nvcmp --file nvchecker.toml --json
 #
-# 不在本文件中的包(usbeam-hosts-editor / steamcommunity302 / securelink)
-# 上游不是 GitHub,comalot-clipsync-git 是 -git 源无需版本检查,均不自动化。
+# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage / maa-unified
+# 非 GitHub 源:steamcommunity302 / usbeam-hosts-editor(dogfight360 博客,cmd 脚本解析)
+#
+# 已禁用自动更新:
+#   securelink  — 官网对非浏览器流量返回 406(WAF),下载服务器无目录索引/无 latest
+#                 入口,deb 文件名精确绑定版本无法枚举,无公开版本锚点。仅提供
+#                 scripts/check-securelink.sh 做下载 URL 存在性检查(手动运行)。
+#   comalot-clipsync-git — -git 源,构建时取最新提交,无需版本检查。
 
 [__config__]
 oldver = "old.json"
 newver = "new.json"
+http_timeout = 30
 
 # 上游 tag 形如 v1.3,v1.2,...;use_max_tag 取最大 tag,prefix 去掉 v 前缀
 [jetbrains-lxgw-nerd-mono-ttf]
@@ -27,7 +34,17 @@ prefix = "v"
 # 主仓 CI 产物无法匿名获取,版本由 fork(lingdiansr/MaaAssistantArknights)的
 # Release(固定 tag maaunified-linux-x64)的 asset 名编码:
 #   MAAUnified-v<assetver>-<commit>-linux-x64.tar.gz
-# custom 脚本解析出 pkgver 格式  <assetver>.r0.g<commit>
+# 脚本解析出 pkgver 格式  <assetver>.r0.g<commit>
 [maa-unified]
 source = "cmd"
 cmd = "scripts/check-maa-unified.sh"
+
+# dogfight360 博客页面含全部历史版本文件名,脚本取最大版本即最新;
+# pkgdate(YYYY/MM,下载 URL 的目录)由 update-version.sh 从页面同步
+[steamcommunity302]
+source = "cmd"
+cmd = "scripts/check-steamcommunity302.sh"
+
+[usbeam-hosts-editor]
+source = "cmd"
+cmd = "scripts/check-usbeam-hosts-editor.sh"

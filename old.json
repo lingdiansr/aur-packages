@@ -9,6 +9,12 @@
     },
     "maa-unified": {
       "version": "6.16.4.r0.g4044b8ec5"
+    },
+    "steamcommunity302": {
+      "version": "14.0.02"
+    },
+    "usbeam-hosts-editor": {
+      "version": "5.0.1"
     }
   }
 }

@@ -6,6 +6,11 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+# dogfight360 博客文章页:版本块形如 "下载: (V14.0.02 [20260201])"
+S302_URL="https://www.dogfight360.com/blog/18682/"
+# usbeam 页面:当前版本文件 URL 形如 uploads/2026/01/UsbEAm_Hosts_Editor.5.0.1_x64.dmg
+UHE_URL="https://www.dogfight360.com/blog/18627/"
+
 pkg="${1:?Usage: update-version.sh <package-name> <new-version>}"
 ver="${2:?Usage: update-version.sh <package-name> <new-version>}"
 pkgdir="$REPO_ROOT/$pkg"
@@ -26,6 +31,25 @@ case "$pkg" in
     [[ -n "$assetver" && -n "$commit" ]] || { echo "error: 无法解析版本 $ver" >&2; exit 1; }
     sed -i "s/^_assetver=.*/_assetver=$assetver/" "$pkgdir/PKGBUILD"
     sed -i "s/^_commit=.*/_commit=$commit/" "$pkgdir/PKGBUILD"
+    ;;
+  steamcommunity302)
+    # 下载 URL 形如 uploads/<pkgdate>/steamcommunity_302_Linux_AMD64_V<pkgver>.tar.gz,
+    # pkgdate(YYYY/MM)与版本绑定,从页面版本块提取
+    sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
+    block="$(curl -fsSL "$S302_URL" | grep -oE 'V[0-9]+\.[0-9]+\.[0-9]+ \[[0-9]{8}\]' | sort -V | tail -1)"
+    pkgdate="$(echo "$block" | sed -nE 's/.*\[([0-9]{4})([0-9]{2})[0-9]{2}\]/\1\/\2/p')"
+    [[ -n "$pkgdate" ]] || { echo "error: 无法从上游页面提取 pkgdate" >&2; exit 1; }
+    # pkgdate 形如 2026/02 含斜杠,用 | 作 sed 分隔符
+    sed -i "s|^pkgdate=.*|pkgdate=$pkgdate|" "$pkgdir/PKGBUILD"
+    ;;
+  usbeam-hosts-editor)
+    # 下载 URL 形如 uploads/<pkgdate>/UsbEAm_Hosts_Editor.5.0.1_x64.dmg,
+    # pkgdate(YYYY/MM)取最大版本文件的 uploads 目录
+    sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
+    block="$(curl -fsSL "$UHE_URL" | grep -oE 'uploads/[0-9]{4}/[0-9]{2}/UsbEAm_Hosts_Editor[._]V?[0-9.]+[^"'"'"' <>]*' | sort -V | tail -1)"
+    pkgdate="$(echo "$block" | grep -oE '[0-9]{4}/[0-9]{2}' | head -1)"
+    [[ -n "$pkgdate" ]] || { echo "error: 无法从上游页面提取 pkgdate" >&2; exit 1; }
+    sed -i "s|^pkgdate=.*|pkgdate=$pkgdate|" "$pkgdir/PKGBUILD"
     ;;
   *)
     sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
