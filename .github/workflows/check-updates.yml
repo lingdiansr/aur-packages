@@ -1,16 +1,33 @@
-# 每日检查 GitHub 上游版本,自动更新 AUR 包并推送
+# 每日检查上游版本,自动更新 AUR 包
 # 结构参考:https://github.com/zerx-lab/actions(.github/workflows/check-updates.yml)
 # 版本检测用 nvchecker:https://nvchecker.readthedocs.io/
 # 流程:check(nvchecker 对比 old.json) → update(改 PKGBUILD+构建验证+发 AUR) → commit(更新 old.json 并提交仓库)
+#
+# 两种运行模式:
+#   - 直推模式(默认):检测到更新后直接推送 main 并发布 AUR
+#   - PR 模式:检测到更新后开 PR(含 PKGBUILD 变更与 old.json 同步),
+#     合并后由 publish-aur.yml 发布 AUR。手动触发用 input 显式指定,
+#     定时任务由仓库变量 PR_MODE=true 控制
 name: 检查并更新 AUR 包
 
 on:
   schedule:
     - cron: "0 8 * * *" # 每日 UTC 08:00
   workflow_dispatch: # 支持手动触发
+    inputs:
+      pr_mode:
+        description: 以 PR 模式运行(开 PR 代替直接推送,合并后再发布 AUR)
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
+  pull-requests: write
+
+env:
+  # 手动触发:input 显式指定;定时任务:仓库变量 PR_MODE 控制
+  PR_MODE: ${{ inputs.pr_mode == true || (github.event_name == 'schedule' && vars.PR_MODE == 'true') }}
 
 jobs:
   check:
@@ -79,7 +96,7 @@ jobs:
         run: |
           su -w PKG builder -c 'cd "$PKG" && CI=1 makepkg --syncdeps --noconfirm --noarchive'
       - name: 发布到 AUR
-        if: ${{ secrets.AUR_SSH_KEY != '' }}
+        if: ${{ env.PR_MODE == 'false' && secrets.AUR_SSH_KEY != '' }}
         env:
           PKG: ${{ matrix.pkg }}
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
@@ -96,7 +113,7 @@ jobs:
   commit:
     name: 提交更新到仓库
     needs: [check, update]
-    if: needs.check.outputs.has_updates == 'true'
+    if: needs.check.outputs.has_updates == 'true' && env.PR_MODE == 'false'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -140,3 +157,69 @@ jobs:
             git commit -m "更新 AUR 包到上游最新版本"
             git push
           fi
+
+  pr:
+    name: 创建更新 PR
+    needs: [check, update]
+    if: needs.check.outputs.has_updates == 'true' && env.PR_MODE == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: 下载更新文件
+        uses: actions/download-artifact@v4
+        with:
+          path: .artifacts
+          pattern: updated-*
+      - name: 恢复更新并同步 old.json
+        env:
+          MATRIX: ${{ needs.check.outputs.matrix }}
+        run: |
+          for d in .artifacts/updated-*; do
+            [ -d "$d" ] || continue
+            pkg="${d#.artifacts/updated-}"
+            cp -a "$d/." "$pkg/"
+            echo "restored $pkg"
+          done
+          MATRIX="$MATRIX" python3 - <<'PY'
+          import json, os
+          matrix = json.loads(os.environ['MATRIX'])
+          with open('old.json') as f:
+              old = json.load(f)
+          for e in matrix.get('include', []):
+              pkg = e['pkg']
+              if os.path.isdir(f'.artifacts/updated-{pkg}'):
+                  old['data'][pkg] = {'version': e['version']}
+          with open('old.json', 'w') as f:
+              json.dump(old, f, indent=2)
+              f.write('\n')
+          PY
+      - name: 创建分支并推送
+        env:
+          MATRIX: ${{ needs.check.outputs.matrix }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="auto-update/$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$branch"
+          git add .
+          if git diff --cached --quiet; then
+            echo "无变更,跳过"
+            echo "BRANCH=" >> "$GITHUB_ENV"
+          else
+            git commit -m "更新 AUR 包到上游最新版本"
+            git push origin "$branch"
+            echo "BRANCH=$branch" >> "$GITHUB_ENV"
+          fi
+      - name: 创建 PR
+        if: env.BRANCH != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATRIX: ${{ needs.check.outputs.matrix }}
+        run: |
+          body="$(echo "$MATRIX" | jq -r '.include[] | "- **\(.pkg)**: \(.version)"')"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "更新 AUR 包到上游最新版本" \
+            --body "检测到以下包有新版本:${body:+$'\n\n'$body}"

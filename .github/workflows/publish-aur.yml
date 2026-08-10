@@ -1,0 +1,48 @@
+# PR 模式(或手动)合并到 main 后发布 AUR
+# 触发:push 到 main 且涉及任一包目录的 PKGBUILD/.SRCINFO;或手动触发
+# 遍历所有含 PKGBUILD+.SRCINFO 的包调用 publish.sh:
+#   - 不在 AUR 上的包自动跳过(如 maa-unified / vscode-config-helper-appimage)
+#   - 与 AUR 无差异的包自动跳过(幂等)
+#   - 缺 .SRCINFO 的包跳过(如 -git 包 comalot-clipsync-git,不在此流程)
+name: 发布到 AUR(合并后)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*/PKGBUILD"
+      - "*/.SRCINFO"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: 发布到 AUR
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    steps:
+      - name: 安装工具
+        run: pacman -Syu --noconfirm --needed openssh git jq
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: 发布有变更的包
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
+          AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
+        run: |
+          if [[ -z "${AUR_SSH_KEY:-}" ]]; then
+            echo "AUR_SSH_KEY 未配置,跳过发布"
+            exit 0
+          fi
+          for pkgdir in */; do
+            pkg="${pkgdir%/}"
+            [[ -f "$pkgdir/PKGBUILD" ]] || continue  # 非包目录(scripts/.github 等)
+            if [[ -f "$pkgdir/.SRCINFO" ]]; then
+              scripts/publish.sh "$pkg"
+            else
+              echo "跳过 $pkg(缺 .SRCINFO,-git 等包不在此流程)"
+            fi
+          done
