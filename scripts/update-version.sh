@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
-# 更新包版本:改 pkgver、重置 pkgrel、重算校验和、重新生成 .SRCINFO
+# 更新包版本:改 pkgver(及派生变量)、重置 pkgrel、重算校验和、重新生成 .SRCINFO
 # 用法:update-version.sh <package-name> <new-version>
+#
+# 有检查脚本(scripts/check-<pkg>.sh)的包,其输出 JSON 为更新变量的单一事实源
+# (如 {"pkgver": "14.0.02", "pkgdate": "2026/02"});其他包用传入的 <new-version>。
 # 参考:https://github.com/jetm/aur-packages(scripts/update-version.sh)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-
-# dogfight360 博客文章页:版本块形如 "下载: (V14.0.02 [20260201])"
-S302_URL="https://www.dogfight360.com/blog/18682/"
-# usbeam 页面:当前版本文件 URL 形如 uploads/2026/01/UsbEAm_Hosts_Editor.5.0.1_x64.dmg
-UHE_URL="https://www.dogfight360.com/blog/18627/"
 
 pkg="${1:?Usage: update-version.sh <package-name> <new-version>}"
 ver="${2:?Usage: update-version.sh <package-name> <new-version>}"
@@ -23,33 +21,21 @@ fi
 echo "Updating $pkg to $ver..."
 
 case "$pkg" in
-  maa-unified)
-    # pkgver 是模板 pkgver=${_assetver}.r0.g${_commit},ver 形如 6.16.7.r0.gc6bdb48c7
-    # 只更新 _assetver/_commit 两个变量,保持 PKGBUILD 结构不变
-    assetver="${ver%%.r0.g*}"
-    commit="${ver##*.r0.g}"
-    [[ -n "$assetver" && -n "$commit" ]] || { echo "error: 无法解析版本 $ver" >&2; exit 1; }
-    sed -i "s/^_assetver=.*/_assetver=$assetver/" "$pkgdir/PKGBUILD"
-    sed -i "s/^_commit=.*/_commit=$commit/" "$pkgdir/PKGBUILD"
-    ;;
-  steamcommunity302)
-    # 下载 URL 形如 uploads/<pkgdate>/steamcommunity_302_Linux_AMD64_V<pkgver>.tar.gz,
-    # pkgdate(YYYY/MM)与版本绑定,从页面版本块提取
-    sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
-    block="$(curl -fsSL "$S302_URL" | grep -oE 'V[0-9]+\.[0-9]+\.[0-9]+ \[[0-9]{8}\]' | sort -V | tail -1)"
-    pkgdate="$(echo "$block" | sed -nE 's/.*\[([0-9]{4})([0-9]{2})[0-9]{2}\]/\1\/\2/p')"
-    [[ -n "$pkgdate" ]] || { echo "error: 无法从上游页面提取 pkgdate" >&2; exit 1; }
-    # pkgdate 形如 2026/02 含斜杠,用 | 作 sed 分隔符
-    sed -i "s|^pkgdate=.*|pkgdate=$pkgdate|" "$pkgdir/PKGBUILD"
-    ;;
-  usbeam-hosts-editor)
-    # 下载 URL 形如 uploads/<pkgdate>/UsbEAm_Hosts_Editor.5.0.1_x64.dmg,
-    # pkgdate(YYYY/MM)取最大版本文件的 uploads 目录
-    sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
-    block="$(curl -fsSL "$UHE_URL" | grep -oE 'uploads/[0-9]{4}/[0-9]{2}/UsbEAm_Hosts_Editor[._]V?[0-9.]+[^"'"'"' <>]*' | sort -V | tail -1)"
-    pkgdate="$(echo "$block" | grep -oE '[0-9]{4}/[0-9]{2}' | head -1)"
-    [[ -n "$pkgdate" ]] || { echo "error: 无法从上游页面提取 pkgdate" >&2; exit 1; }
-    sed -i "s|^pkgdate=.*|pkgdate=$pkgdate|" "$pkgdir/PKGBUILD"
+  maa-unified|steamcommunity302|usbeam-hosts-editor)
+    # 以检查脚本输出的 JSON 为准(单一事实源),避免重复抓取解析上游
+    json="$("$REPO_ROOT/scripts/check-$pkg.sh")"
+    if [[ "$pkg" == "maa-unified" ]]; then
+      # pkgver=${_assetver}.r0.g${_commit} 是模板行,由前两个变量派生,不可整体替换
+      keys=(_assetver _commit)
+    else
+      keys=(pkgver pkgdate)
+    fi
+    for key in "${keys[@]}"; do
+      val="$(echo "$json" | jq -r ".${key} // empty")"
+      [[ -n "$val" ]] || { echo "error: 检查脚本未提供变量 $key" >&2; exit 1; }
+      # 值含斜杠(pkgdate 形如 2026/02),用 | 作 sed 分隔符
+      sed -i "s|^${key}=.*|${key}=${val}|" "$pkgdir/PKGBUILD"
+    done
     ;;
   *)
     sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"

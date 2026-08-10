@@ -31,20 +31,19 @@ github = "VSCodeConfigHelper/v4"
 use_max_tag = true
 prefix = "v"
 
+# 检查脚本输出完整变更 JSON(如 {"pkgver":"14.0.02","pkgdate":"2026/02"}),
+# nvchecker 通过管道取 pkgver 做版本对比,update-version.sh 消费整个 JSON。
 # 主仓 CI 产物无法匿名获取,版本由 fork(lingdiansr/MaaAssistantArknights)的
 # Release(固定 tag maaunified-linux-x64)的 asset 名编码:
 #   MAAUnified-v<assetver>-<commit>-linux-x64.tar.gz
-# 脚本解析出 pkgver 格式  <assetver>.r0.g<commit>
 [maa-unified]
 source = "cmd"
-cmd = "scripts/check-maa-unified.sh"
+cmd = "scripts/check-maa-unified.sh | jq -r .pkgver"
 
-# dogfight360 博客页面含全部历史版本文件名,脚本取最大版本即最新;
-# pkgdate(YYYY/MM,下载 URL 的目录)由 update-version.sh 从页面同步
 [steamcommunity302]
 source = "cmd"
-cmd = "scripts/check-steamcommunity302.sh"
+cmd = "scripts/check-steamcommunity302.sh | jq -r .pkgver"
 
 [usbeam-hosts-editor]
 source = "cmd"
-cmd = "scripts/check-usbeam-hosts-editor.sh"
+cmd = "scripts/check-usbeam-hosts-editor.sh | jq -r .pkgver"
