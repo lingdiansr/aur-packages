@@ -20,16 +20,14 @@ fi
 
 echo "Updating $pkg to $ver..."
 
-case "$pkg" in
-  maa-unified|steamcommunity302|usbeam-hosts-editor)
-    # 以检查脚本输出的 JSON 为准(单一事实源),避免重复抓取解析上游
-    json="$("$REPO_ROOT/scripts/check-$pkg.sh")"
-    python3 "$REPO_ROOT/scripts/apply-updates.py" "$pkgdir/PKGBUILD" "$json"
-    ;;
-  *)
-    sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
-    ;;
-esac
+# 有检查脚本(scripts/check-<pkg>.sh)的包:以脚本输出的 JSON 为单一事实源,
+# 遍历应用其全部 key;无脚本的包用传入版本号。新增包无需改动本文件。
+if [[ -f "$REPO_ROOT/scripts/check-$pkg.sh" ]]; then
+  json="$("$REPO_ROOT/scripts/check-$pkg.sh")"
+  python3 "$REPO_ROOT/scripts/apply-updates.py" "$pkgdir/PKGBUILD" "$json"
+else
+  sed -i "s/^pkgver=.*/pkgver=$ver/" "$pkgdir/PKGBUILD"
+fi
 
 # 版本变化后 pkgrel 重置为 1
 sed -i "s/^pkgrel=.*/pkgrel=1/" "$pkgdir/PKGBUILD"
