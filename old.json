@@ -15,6 +15,9 @@
     },
     "usbeam-hosts-editor": {
       "version": "5.0.1"
+    },
+    "1panel-bin": {
+      "version": "2.2.5"
     }
   }
 }
