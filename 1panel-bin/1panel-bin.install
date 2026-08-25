@@ -87,25 +87,66 @@ post_remove() {
     echo "    rm -rf /opt/1panel"
 }
 
-# 获取本地 IPv4 地址(优先非回环)。
-# 在 pacman hook 等受限网络命名空间中,ip addr 可能只能看到 lo,
-# 因此优先读取 /proc/1/net/fib_trie(init 网络命名空间)。
+# 获取本地 IPv4 地址(优先非回环、非 Docker/虚拟网桥)。
+# 策略:
+# 1) 从 /proc/1/net/route 读默认网关,在 /proc/1/net/fib_trie 的 LOCAL 地址中
+#    找与网关同网段(/24 /16 /8)的地址——可排除 docker0 等虚拟网桥
+# 2) 回退:ip addr(排除回环)
+# 3) 回退:默认路由 src
+# 4) 回退:第一个 IPv4
+# 5) 占位符
 _1panel_get_local_ip() {
-    local ip
-    ip=$(grep -B1 'host LOCAL' /proc/1/net/fib_trie 2>/dev/null \
+    local ip gateway hex_gateway candidates
+
+    # 默认网关(小端十六进制,如 0105A8C0 -> 192.168.5.1)
+    read _ _ hex_gateway _ < <(awk '$2=="00000000" && $8=="00000000" {print $1, $2, $3, $4, $5; exit}' /proc/1/net/route 2>/dev/null)
+    if [[ -n "$hex_gateway" && "${#hex_gateway}" -eq 8 ]]; then
+        gateway=$(printf '%d.%d.%d.%d' \
+            $((0x${hex_gateway:6:2} & 0xff)) \
+            $((0x${hex_gateway:4:2} & 0xff)) \
+            $((0x${hex_gateway:2:2} & 0xff)) \
+            $((0x${hex_gateway:0:2} & 0xff)))
+    fi
+
+    candidates=$(grep -B1 'host LOCAL' /proc/1/net/fib_trie 2>/dev/null \
         | grep -E '\|-- [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' \
         | sed 's/.*-- //' \
         | grep -v '^127\.' \
-        | head -1)
-    [[ -z "$ip" ]] && ip=$(ip -4 -o addr show 2>/dev/null \
+        | sort -u)
+
+    if [[ -n "$gateway" && -n "$candidates" ]]; then
+        for prefix in 24 16 8; do
+            local mask=$((0xffffffff << (32 - prefix) & 0xffffffff))
+            IFS=. read -r g1 g2 g3 g4 <<< "$gateway"
+            local gw_net=$(( ((g1<<24) + (g2<<16) + (g3<<8) + g4) & mask ))
+            while IFS= read -r ip; do
+                [[ -z "$ip" ]] && continue
+                IFS=. read -r i1 i2 i3 i4 <<< "$ip"
+                local ip_net=$(( ((i1<<24) + (i2<<16) + (i3<<8) + i4) & mask ))
+                if [[ "$gw_net" == "$ip_net" ]]; then
+                    echo "$ip"
+                    return
+                fi
+            done <<< "$candidates"
+        done
+    fi
+
+    [[ -n "$candidates" ]] && { echo "$candidates" | head -1; return; }
+
+    ip=$(ip -4 -o addr show 2>/dev/null \
         | awk '!/^[0-9]+: lo/ {split($4,a,"/"); if (a[1] !~ /^127\./) {print a[1]; exit}}')
-    [[ -z "$ip" ]] && ip=$(ip -4 route get 1.1.1.1 2>/dev/null \
+    [[ -n "$ip" ]] && { echo "$ip"; return; }
+
+    ip=$(ip -4 route get 1.1.1.1 2>/dev/null \
         | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')
-    [[ -z "$ip" ]] && ip=$(ip -4 addr show 2>/dev/null \
+    [[ -n "$ip" ]] && { echo "$ip"; return; }
+
+    ip=$(ip -4 addr show 2>/dev/null \
         | grep -oE 'inet [0-9.]+' \
         | awk '{print $2}' \
         | head -1 \
         | cut -d/ -f1)
-    [[ -z "$ip" ]] && ip="<服务器IP>"
-    echo "$ip"
+    [[ -n "$ip" ]] && { echo "$ip"; return; }
+
+    echo "<服务器IP>"
 }

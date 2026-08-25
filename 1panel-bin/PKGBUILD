@@ -14,9 +14,8 @@ pkgdesc="1Panel, a modern open source linux panel (official binary)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/1Panel-dev/1Panel"
 license=('GPL-3.0-or-later')
-depends=('docker')
+depends=('docker' 'docker-compose')
 optdepends=(
-  'docker-compose: container orchestration'
   'ufw: firewall integration'
   'firewalld: firewall integration'
 )
