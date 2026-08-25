@@ -5,8 +5,9 @@ post_install() {
     if [[ -f "$cred_file" ]]; then
         # shellcheck source=/dev/null
         source "$cred_file"
+        LOCAL_IP=$(_1panel_get_local_ip)
         echo "==> 1Panel 已存在初始化数据,保留现有凭据"
-        echo "    访问地址: http://<服务器IP>:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
+        echo "    访问地址: http://${LOCAL_IP}:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
         echo "    用户名: ${ORIGINAL_USERNAME}"
         return 0
     fi
@@ -46,10 +47,12 @@ post_install() {
         "$PANEL_PORT" "$PANEL_ENTRANCE" "$PANEL_USERNAME" "$PANEL_PASSWORD" > "$cred_file"
     chmod 600 "$cred_file"
 
+    LOCAL_IP=$(_1panel_get_local_ip)
+
     echo "==> 1Panel 已安装"
     echo "    启动服务: systemctl start 1panel-core 1panel-agent"
     echo "    开机自启: systemctl enable 1panel-core 1panel-agent"
-    echo "    首次访问: http://<服务器IP>:${PANEL_PORT}/${PANEL_ENTRANCE}"
+    echo "    首次访问: http://${LOCAL_IP}:${PANEL_PORT}/${PANEL_ENTRANCE}"
     echo "    用户名: ${PANEL_USERNAME}"
     echo "    密码: ${PANEL_PASSWORD}"
     echo "    凭据备份: ${cred_file}"
@@ -69,8 +72,9 @@ post_upgrade() {
             -e "s|^ORIGINAL_USERNAME=.*|ORIGINAL_USERNAME=${ORIGINAL_USERNAME}|" \
             -e "s|^ORIGINAL_PASSWORD=.*|ORIGINAL_PASSWORD=${ORIGINAL_PASSWORD}|" \
             /usr/local/bin/1pctl
+        LOCAL_IP=$(_1panel_get_local_ip)
         echo "==> 1Panel 升级完成,已恢复现有凭据"
-        echo "    访问地址: http://<服务器IP>:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
+        echo "    访问地址: http://${LOCAL_IP}:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
         echo "    用户名: ${ORIGINAL_USERNAME}"
     else
         post_install
@@ -81,4 +85,27 @@ post_remove() {
     echo "==> 1Panel 已卸载"
     echo "    数据目录 /opt/1panel 与凭据备份未自动删除,如需清除请手动执行:"
     echo "    rm -rf /opt/1panel"
+}
+
+# 获取本地 IPv4 地址(优先非回环)。
+# 在 pacman hook 等受限网络命名空间中,ip addr 可能只能看到 lo,
+# 因此优先读取 /proc/1/net/fib_trie(init 网络命名空间)。
+_1panel_get_local_ip() {
+    local ip
+    ip=$(grep -B1 'host LOCAL' /proc/1/net/fib_trie 2>/dev/null \
+        | grep -E '\|-- [0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sed 's/.*-- //' \
+        | grep -v '^127\.' \
+        | head -1)
+    [[ -z "$ip" ]] && ip=$(ip -4 -o addr show 2>/dev/null \
+        | awk '!/^[0-9]+: lo/ {split($4,a,"/"); if (a[1] !~ /^127\./) {print a[1]; exit}}')
+    [[ -z "$ip" ]] && ip=$(ip -4 route get 1.1.1.1 2>/dev/null \
+        | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}')
+    [[ -z "$ip" ]] && ip=$(ip -4 addr show 2>/dev/null \
+        | grep -oE 'inet [0-9.]+' \
+        | awk '{print $2}' \
+        | head -1 \
+        | cut -d/ -f1)
+    [[ -z "$ip" ]] && ip="<服务器IP>"
+    echo "$ip"
 }
