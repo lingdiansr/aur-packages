@@ -1,7 +1,7 @@
 pkgbase = 1panel-bin
 	pkgdesc = 1Panel, a modern open source linux panel (official binary)
 	pkgver = 2.2.5
-	pkgrel = 1
+	pkgrel = 2
 	url = https://github.com/1Panel-dev/1Panel
 	install = 1panel-bin.install
 	arch = x86_64

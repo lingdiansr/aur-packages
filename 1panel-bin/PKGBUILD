@@ -4,11 +4,12 @@
 # 下载源用官方 CDN 快镜像 resource.fit2cloud.com(v2 安装脚本默认的
 # resource.1panel.pro 对部分网络极慢);版本端点:
 #   https://resource.fit2cloud.com/1panel/package/v2/stable/latest
-# 凭据:安装不预置账号密码,首次 web 访问由面板初始化向导生成
+# 凭据:安装时按官方 install.sh 的 NON_INTERACTIVE 逻辑随机生成端口、安全入口、
+#   用户名、密码(写入 /usr/local/bin/1pctl 与 /opt/1panel/.install-credentials)
 pkgname=1panel-bin
 _upver=v2.2.5
 pkgver=${_upver#v}
-pkgrel=1
+pkgrel=2
 pkgdesc="1Panel, a modern open source linux panel (official binary)"
 arch=('x86_64' 'aarch64')
 url="https://github.com/1Panel-dev/1Panel"
@@ -45,15 +46,14 @@ package() {
   ln -s 1panel-core "$pkgdir/usr/bin/1panel"
 
   # 1pctl 控制脚本:1panel-core 启动时硬编码读 /usr/local/bin/1pctl 的
-  # BASE_DIR/LANGUAGE,必须与官方布局一致装在 /usr/local/bin
-  # 模板占位符必须全部替换:1panel-core 会读取 ORIGINAL_PORT 作为监听端口,
-  # 字面量 "port" 会导致 Go net.Listen 按服务名解析失败而 panic
-  # (lookup tcp/port: unknown port)
+  # BASE_DIR/LANGUAGE,必须与官方布局一致装在 /usr/local/bin。
+  # 端口、安全入口、用户名、密码不在构建时生成,留到 .install 中按官方
+  # install.sh 的 NON_INTERACTIVE 逻辑在目标机器上随机生成(可检查端口占用)。
   sed -i \
     -e 's|^BASE_DIR=.*|BASE_DIR=/opt|' \
     -e 's|^ORIGINAL_VERSION=.*|ORIGINAL_VERSION='"${_upver}"'|' \
-    -e 's|^ORIGINAL_PORT=.*|ORIGINAL_PORT=9999|' \
     -e 's|^LANGUAGE=.*|LANGUAGE=zh|' \
+    -e 's|^PANEL_EDITION=.*|PANEL_EDITION=intl|' \
     1pctl
   install -Dm755 1pctl "$pkgdir/usr/local/bin/1pctl"
   ln -s /usr/local/bin/1pctl "$pkgdir/usr/bin/1pctl"

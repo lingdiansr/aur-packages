@@ -1,13 +1,84 @@
 post_install() {
+    local cred_file="/opt/1panel/.install-credentials"
+
+    # 已存在凭据备份说明是升级/已初始化,不再重新生成,避免覆盖数据库中持久化凭据
+    if [[ -f "$cred_file" ]]; then
+        # shellcheck source=/dev/null
+        source "$cred_file"
+        echo "==> 1Panel 已存在初始化数据,保留现有凭据"
+        echo "    访问地址: http://<服务器IP>:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
+        echo "    用户名: ${ORIGINAL_USERNAME}"
+        return 0
+    fi
+
+    # 按官方 install.sh 的 NON_INTERACTIVE 模式生成凭据:
+    # - 端口: RANDOM % 55535 + 10000 (10000-65535),并检查占用重试
+    # - 安全入口、用户名、密码: /dev/urandom 取 16 行后 md5sum 前 10 字符
+    local PANEL_PORT PANEL_ENTRANCE PANEL_USERNAME PANEL_PASSWORD
+    local port_retry_count=0
+
+    PANEL_ENTRANCE=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
+    PANEL_USERNAME=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
+    PANEL_PASSWORD=$(cat /dev/urandom | head -n 16 | md5sum | head -c 10)
+
+    while true; do
+        PANEL_PORT=$(shuf -i 10000-65535 -n 1)
+        if ! ss -tlun 2>/dev/null | grep -q ":${PANEL_PORT} "; then
+            break
+        fi
+        port_retry_count=$((port_retry_count + 1))
+        if [[ "$port_retry_count" -ge 10 ]]; then
+            echo "警告: 10 次未找到空闲端口,回退到 9999" >&2
+            PANEL_PORT=9999
+            break
+        fi
+    done
+
+    sed -i \
+        -e "s|^ORIGINAL_PORT=.*|ORIGINAL_PORT=${PANEL_PORT}|" \
+        -e "s|^ORIGINAL_ENTRANCE=.*|ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}|" \
+        -e "s|^ORIGINAL_USERNAME=.*|ORIGINAL_USERNAME=${PANEL_USERNAME}|" \
+        -e "s|^ORIGINAL_PASSWORD=.*|ORIGINAL_PASSWORD=${PANEL_PASSWORD}|" \
+        /usr/local/bin/1pctl
+
+    # 持久化凭据供升级时恢复(1pctl 在升级时会被 pacman 覆盖)
+    printf 'ORIGINAL_PORT=%s\nORIGINAL_ENTRANCE=%s\nORIGINAL_USERNAME=%s\nORIGINAL_PASSWORD=%s\n' \
+        "$PANEL_PORT" "$PANEL_ENTRANCE" "$PANEL_USERNAME" "$PANEL_PASSWORD" > "$cred_file"
+    chmod 600 "$cred_file"
+
     echo "==> 1Panel 已安装"
     echo "    启动服务: systemctl start 1panel-core 1panel-agent"
     echo "    开机自启: systemctl enable 1panel-core 1panel-agent"
-    echo "    首次访问: http://<服务器IP>:9999"
-    echo "    账号密码: 由面板初始化向导在首次访问时设置,不预置"
-    echo "    修改端口: 在面板设置中修改(配置持久化于数据库,改 1pctl 不生效)"
+    echo "    首次访问: http://<服务器IP>:${PANEL_PORT}/${PANEL_ENTRANCE}"
+    echo "    用户名: ${PANEL_USERNAME}"
+    echo "    密码: ${PANEL_PASSWORD}"
+    echo "    凭据备份: ${cred_file}"
     echo "    控制命令: 1pctl --help"
 }
 
 post_upgrade() {
-    post_install
+    local cred_file="/opt/1panel/.install-credentials"
+    if [[ -f "$cred_file" ]]; then
+        # shellcheck source=/dev/null
+        source "$cred_file"
+        # 升级时 pacman 已用新版 1pctl 覆盖文件(含新 ORIGINAL_VERSION),
+        # 这里从备份恢复用户凭据,版本号保持新版不变
+        sed -i \
+            -e "s|^ORIGINAL_PORT=.*|ORIGINAL_PORT=${ORIGINAL_PORT}|" \
+            -e "s|^ORIGINAL_ENTRANCE=.*|ORIGINAL_ENTRANCE=${ORIGINAL_ENTRANCE}|" \
+            -e "s|^ORIGINAL_USERNAME=.*|ORIGINAL_USERNAME=${ORIGINAL_USERNAME}|" \
+            -e "s|^ORIGINAL_PASSWORD=.*|ORIGINAL_PASSWORD=${ORIGINAL_PASSWORD}|" \
+            /usr/local/bin/1pctl
+        echo "==> 1Panel 升级完成,已恢复现有凭据"
+        echo "    访问地址: http://<服务器IP>:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
+        echo "    用户名: ${ORIGINAL_USERNAME}"
+    else
+        post_install
+    fi
+}
+
+post_remove() {
+    echo "==> 1Panel 已卸载"
+    echo "    数据目录 /opt/1panel 与凭据备份未自动删除,如需清除请手动执行:"
+    echo "    rm -rf /opt/1panel"
 }
