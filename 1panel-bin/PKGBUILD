@@ -46,9 +46,13 @@ package() {
 
   # 1pctl 控制脚本:1panel-core 启动时硬编码读 /usr/local/bin/1pctl 的
   # BASE_DIR/LANGUAGE,必须与官方布局一致装在 /usr/local/bin
+  # 模板占位符必须全部替换:1panel-core 会读取 ORIGINAL_PORT 作为监听端口,
+  # 字面量 "port" 会导致 Go net.Listen 按服务名解析失败而 panic
+  # (lookup tcp/port: unknown port)
   sed -i \
     -e 's|^BASE_DIR=.*|BASE_DIR=/opt|' \
     -e 's|^ORIGINAL_VERSION=.*|ORIGINAL_VERSION='"${_upver}"'|' \
+    -e 's|^ORIGINAL_PORT=.*|ORIGINAL_PORT=9999|' \
     -e 's|^LANGUAGE=.*|LANGUAGE=zh|' \
     1pctl
   install -Dm755 1pctl "$pkgdir/usr/local/bin/1pctl"

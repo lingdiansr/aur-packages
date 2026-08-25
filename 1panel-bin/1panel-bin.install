@@ -2,8 +2,9 @@ post_install() {
     echo "==> 1Panel 已安装"
     echo "    启动服务: systemctl start 1panel-core 1panel-agent"
     echo "    开机自启: systemctl enable 1panel-core 1panel-agent"
-    echo "    首次访问: http://<服务器IP>:<端口> (默认端口随机,以服务日志为准)"
+    echo "    首次访问: http://<服务器IP>:9999"
     echo "    账号密码: 由面板初始化向导在首次访问时设置,不预置"
+    echo "    修改端口: 在面板设置中修改(配置持久化于数据库,改 1pctl 不生效)"
     echo "    控制命令: 1pctl --help"
 }
 
