@@ -21,7 +21,7 @@ depends=(
   'libice'
   'libsm'
   'fontconfig'
-  'adb'
+  'android-tools'
 )
 source=(
   # fork Release 产物(官方 CI 合并后的完整运行目录:应用 + MaaCore runtime + resource)
