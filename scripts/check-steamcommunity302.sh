@@ -11,19 +11,24 @@ page="$(curl -fsSL "$url")"
 
 # 版本:历史 Linux 包文件名中的最大版本
 ver="$(
-  echo "$page" \
-  | grep -oE 'steamcommunity_302_Linux_AMD64_V[0-9.]+\.tar\.gz' \
-  | sed -nE 's/^steamcommunity_302_Linux_AMD64_V//; s/\.tar\.gz$//p' \
-  | sort -V \
-  | tail -1
+  echo "$page" |
+    grep -oE 'Steamcommunity_302_[0-9.]+' |
+    sed -nE 's/Steamcommunity_302_//p' |
+    uniq
 )"
 
-# pkgdate:版本块 "V<ver> [YYYYMMDD]" 中最大版本对应的日期
-block="$(echo "$page" | grep -oE 'V[0-9]+\.[0-9]+\.[0-9]+ \[[0-9]{8}\]' | sort -V | tail -1)"
-pkgdate="$(echo "$block" | sed -nE 's/.*\[([0-9]{4})([0-9]{2})[0-9]{2}\]/\1\/\2/p')"
+# # pkgdate:版本块 "V<ver> [YYYYMMDD]" 中最大版本对应的日期
+# block="$(echo "$page" | grep -oE 'V[0-9]+\.[0-9]+\.[0-9]+ \[[0-9]{8}\]' | sort -V | tail -1)"
+# pkgdate="$(echo "$block" | sed -nE 's/.*\[([0-9]{4})([0-9]{2})[0-9]{2}\]/\1\/\2/p')"
 
-[[ -n "$ver" ]] || { echo "error: 无法从上游页面提取版本" >&2; exit 1; }
-[[ -n "$pkgdate" ]] || { echo "error: 无法从上游页面提取 pkgdate" >&2; exit 1; }
+[[ -n "$ver" ]] || {
+  echo "error: 无法从上游页面提取版本" >&2
+  exit 1
+}
+# [[ -n "$pkgdate" ]] || {
+#   echo "error: 无法从上游页面提取 pkgdate" >&2
+#   exit 1
+# }
 
-jq -n --arg pkgver "$ver" --arg pkgdate "$pkgdate" \
-  '{pkgver: $pkgver, pkgdate: $pkgdate}'
+jq -n --arg pkgver "$ver" \
+  '{pkgver: $pkgver}'
