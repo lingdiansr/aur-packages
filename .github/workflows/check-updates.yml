@@ -107,6 +107,11 @@ jobs:
           AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
           AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
         run: scripts/publish.sh "$PKG"
+      - name: 清理构建产物
+        # 只保留 git 追踪的包脚本(PKGBUILD/.SRCINFO/install/本地 source),
+        # 删除构建残留(src/ pkg/ 下载的源码归档等)。构建验证已在 CI 完成,
+        # 下游提交不需要这些;用户本地 pull 后自行 makepkg 构建。
+        run: git clean -fdX
       - name: 上传更新文件
         uses: actions/upload-artifact@v4
         with:
