@@ -159,6 +159,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf .artifacts  # artifact 已恢复,删除副本防误提交
           git add .
           if git diff --cached --quiet; then
             echo "无变更,跳过提交"
@@ -211,6 +212,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="auto-update/$(date +%Y%m%d-%H%M%S)"
           git checkout -b "$branch"
+          rm -rf .artifacts  # artifact 已恢复,删除副本防误提交
           git add .
           if git diff --cached --quiet; then
             echo "无变更,跳过"

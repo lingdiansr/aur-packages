@@ -3,7 +3,7 @@
 # 运行:nvchecker --file nvchecker.toml --keyfile keyfile.toml
 # 对比:nvcmp --file nvchecker.toml --json
 #
-# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage / maa-unified
+# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage
 # 非 GitHub 源:steamcommunity302 / usbeam-hosts-editor(dogfight360 博客,cmd 脚本解析)
 # 官方 CDN 源:1panel-bin(1Panel v2)
 #
@@ -11,7 +11,7 @@
 #   securelink  — 官网对非浏览器流量返回 406(WAF),下载服务器无目录索引/无 latest
 #                 入口,deb 文件名精确绑定版本无法枚举,无公开版本锚点。仅提供
 #                 scripts/check-securelink.sh 做下载 URL 存在性检查(手动运行)。
-#   comalot-clipsync-git — -git 源,构建时取最新提交,无需版本检查。
+#
 
 [__config__]
 oldver = "old.json"
@@ -31,15 +31,6 @@ source = "github"
 github = "VSCodeConfigHelper/v4"
 use_max_tag = true
 prefix = "v"
-
-# 检查脚本输出完整变更 JSON(如 {"pkgver":"14.0.02","pkgdate":"2026/02"}),
-# nvchecker 通过管道取 pkgver 做版本对比,update-version.sh 消费整个 JSON。
-# 主仓 CI 产物无法匿名获取,版本由 fork(lingdiansr/MaaAssistantArknights)的
-# Release(固定 tag maaunified-linux-x64)的 asset 名编码:
-#   MAAUnified-v<assetver>-<commit>-linux-x64.tar.gz
-[maa-unified]
-source = "cmd"
-cmd = "scripts/check-maa-unified.sh | jq -r .pkgver"
 
 [steamcommunity302]
 source = "cmd"

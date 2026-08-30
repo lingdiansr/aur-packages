@@ -1,9 +1,9 @@
 # PR 模式(或手动)合并到 main 后发布 AUR
 # 触发:push 到 main 且涉及任一包目录的 PKGBUILD/.SRCINFO;或手动触发
 # 遍历所有含 PKGBUILD+.SRCINFO 的包调用 publish.sh:
-#   - 不在 AUR 上的包自动跳过(如 maa-unified / vscode-config-helper-appimage)
+#   - 不在 AUR 上的包自动跳过(如 vscode-config-helper-appimage)
 #   - 与 AUR 无差异的包自动跳过(幂等)
-#   - 缺 .SRCINFO 的包跳过(如 -git 包 comalot-clipsync-git,不在此流程)
+#   - 缺 .SRCINFO 的包跳过(如 -git 包,不在此流程)
 name: 发布到 AUR(合并后)
 
 on:

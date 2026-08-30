@@ -9,11 +9,10 @@ pkg/
 *.zip
 *.AppImage
 
-# 本地 git 克隆（comalot-clipsync-git 的源目录）
-clipsync/
-
 # 测试残留
 .playwright-mcp/
+# workflow 下载的 artifact 副本(commit/pr job 恢复后即删除,防止误提交)
+.artifacts/
 
 # nvchecker 运行产物
 new.json

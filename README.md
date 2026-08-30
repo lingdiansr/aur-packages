@@ -8,12 +8,10 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 |---|---|---|
 | [steamcommunity302](https://aur.archlinux.org/packages/steamcommunity302) | 羽翼城制作的 Steam/GitHub 反代加速工具(`s302` 启动) | dogfight360 博客(脚本解析) |
 | [1panel-bin](https://aur.archlinux.org/packages/1panel-bin) | 1Panel 开源 Linux 服务器运维面板官方二进制 | 官方 CDN |
-| [maa-unified](https://aur.archlinux.org/packages/maa-unified) | MAA(明日方舟自动助手)官方跨平台 GUI | fork Release asset 名 |
 | [usbeam-hosts-editor](https://aur.archlinux.org/packages/usbeam-hosts-editor) | 羽翼城制作的 UsbEAm Hosts Editor(`uhe` 启动) | dogfight360 博客(脚本解析) |
 | [jetbrains-lxgw-nerd-mono-ttf](https://aur.archlinux.org/packages/jetbrains-lxgw-nerd-mono-ttf) | JetBrains Mono + 霞鹜文楷合并 Nerd Font(2:1 CJK 比例) | GitHub tag |
 | [vscode-config-helper-appimage](https://aur.archlinux.org/packages/vscode-config-helper-appimage) | VS Code C++ 配置器 AppImage | GitHub tag |
 | [securelink](https://aur.archlinux.org/packages/securelink) | 网宿 SecureLink SDP/零信任客户端(Ubuntu GUI 版) | 手动更新(官网 WAF 无版本锚点) |
-| [comalot-clipsync-git](https://aur.archlinux.org/packages/comalot-clipsync-git) | Wayland↔X11 剪贴板同步(lingdiansr fork 修复版) | 无需检查(`-git` 构建时取最新) |
 
 ## 目录结构
 
