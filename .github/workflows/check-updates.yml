@@ -71,9 +71,9 @@ jobs:
     if: needs.check.outputs.has_updates == 'true'
     runs-on: ubuntu-latest
     container: archlinux:base-devel
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.check.outputs.matrix) }}
+    env:
+      # secrets 不能直接在 if 条件中引用,先用 env 求值布尔标志
+      HAS_AUR_KEY: ${{ secrets.AUR_SSH_KEY != '' }}
     steps:
       - name: 安装工具
         run: pacman -Syu --noconfirm --needed pacman-contrib openssh jq
@@ -96,7 +96,7 @@ jobs:
         run: |
           su -w PKG builder -c 'cd "$PKG" && CI=1 makepkg --syncdeps --noconfirm --noarchive'
       - name: 发布到 AUR
-        if: ${{ env.PR_MODE == 'false' && secrets.AUR_SSH_KEY != '' }}
+        if: ${{ env.PR_MODE == 'false' && env.HAS_AUR_KEY == 'true' }}
         env:
           PKG: ${{ matrix.pkg }}
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
