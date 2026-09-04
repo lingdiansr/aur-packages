@@ -80,7 +80,7 @@ jobs:
       matrix: ${{ fromJSON(needs.check.outputs.matrix) }}
     steps:
       - name: 安装工具
-        run: pacman -Syu --noconfirm --needed pacman-contrib openssh jq
+        run: pacman -Syu --noconfirm --needed pacman-contrib openssh git jq
       - name: Checkout
         uses: actions/checkout@v5
       - name: 建立构建用户
