@@ -8,6 +8,7 @@ pkg/
 *.tar.gz
 *.zip
 *.AppImage
+*.AppImage.part
 
 # 测试残留
 .playwright-mcp/
