@@ -3,7 +3,8 @@
 # 运行:nvchecker --file nvchecker.toml --keyfile keyfile.toml
 # 对比:nvcmp --file nvchecker.toml --json
 #
-# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage
+# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage /
+#           typora-community-plugin
 # 非 GitHub 源:steamcommunity302 / usbeam-hosts-editor(dogfight360 博客,cmd 脚本解析)
 # 官方 CDN 源:1panel-bin(1Panel v2)
 #
@@ -31,6 +32,12 @@ source = "github"
 github = "VSCodeConfigHelper/v4"
 use_max_tag = true
 prefix = "v"
+
+# 上游 tag 即版本号(如 2.10.18,无前缀),release 附 typora-community-plugin.zip
+[typora-community-plugin]
+source = "github"
+github = "typora-community-plugin/typora-community-plugin"
+use_max_tag = true
 
 [steamcommunity302]
 source = "cmd"

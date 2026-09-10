@@ -98,7 +98,17 @@ jobs:
         env:
           PKG: ${{ matrix.pkg }}
         run: |
-          su -w PKG builder -c 'cd "$PKG" && CI=1 makepkg --syncdeps --noconfirm --noarchive'
+          # 依赖本身在 AUR 的包(如 typora-community-plugin → typora)在容器里装不上,
+          # 这类包改用 --nodeps 只验证能否构建出包;其余包照旧 --syncdeps
+          flags=--syncdeps
+          for dep in $(sed -n 's/^[[:space:]]*depends\(_[a-zA-Z0-9_]*\)\? = //p' "$PKG/.SRCINFO" |
+            cut -d'<' -f1 | cut -d'>' -f1 | cut -d'=' -f1); do
+            if ! pacman -Si "$dep" >/dev/null 2>&1; then
+              echo "$dep 不在官方仓库,本次构建跳过依赖安装"
+              flags=--nodeps
+            fi
+          done
+          su -w PKG,flags builder -c 'cd "$PKG" && CI=1 makepkg $flags --noconfirm --noarchive'
       - name: 发布到 AUR
         if: ${{ env.PR_MODE == 'false' && env.HAS_AUR_KEY == 'true' }}
         env:

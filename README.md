@@ -12,6 +12,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 | [jetbrains-lxgw-nerd-mono-ttf](https://aur.archlinux.org/packages/jetbrains-lxgw-nerd-mono-ttf) | JetBrains Mono + 霞鹜文楷合并 Nerd Font(2:1 CJK 比例) | GitHub tag |
 | [vscode-config-helper-appimage](https://aur.archlinux.org/packages/vscode-config-helper-appimage) | VS Code C++ 配置器 AppImage | GitHub tag |
 | [securelink](https://aur.archlinux.org/packages/securelink) | 网宿 SecureLink SDP/零信任客户端(Ubuntu GUI 版) | 手动更新(官网 WAF 无版本锚点) |
+| [typora-community-plugin](https://aur.archlinux.org/packages/typora-community-plugin) | Typora 社区插件系统(插件市场/命令面板/多标签工作区) | GitHub tag |
 
 ## 目录结构
 
@@ -37,6 +38,8 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 
 1. **check** — `nvchecker` 对比 `old.json` 检测上游新版本。GitHub 源直接走 API;非 GitHub 源由 `scripts/check-<pkg>.sh` 解析(博客页面、Release asset 名、CDN)。
 2. **update**(按包并行 matrix)— `update-version.sh` 修改 PKGBUILD(含派生变量)、重置 `pkgrel`、重算 sha256sum、重生成 .SRCINFO;随后 `makepkg` 构建验证;通过后发布到 AUR。artifact 只含包脚本(构建产物已清理,用户本地自行构建)。
+
+   依赖本身只在 AUR 上的包(typora-community-plugin → typora)容器里装不上依赖,构建验证自动改用 `--nodeps`,只验证能构建出包。
 3. **commit / pr** — 同步 `old.json` 并提交 main;或按模式开 PR。
 
 ### 运行模式
