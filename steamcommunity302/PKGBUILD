@@ -31,7 +31,7 @@ source_x86_64=(
 source_aarch64=(
   "steamcommunity302-${pkgver}.AppImage::https://www.dogfight360.com/Usbeam/V15/Steamcommunity_302_${pkgver}_Linux_WebKit_arm64.AppImage"
 )
-md5sums=('34c969aa5513e2e98eaab87c5da4ce47')
+md5sums=('2d6784e94c9fba9fe336f7781e10a0cd')
 md5sums_x86_64=('50855aba518bbb64162281628fd56bab')
 md5sums_aarch64=('50855aba518bbb64162281628fd56bab')
 options=(!strip)
