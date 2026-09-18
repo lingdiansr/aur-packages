@@ -131,6 +131,9 @@ jobs:
         with:
           name: updated-${{ matrix.pkg }}
           path: ${{ matrix.pkg }}/
+          # v4 默认排除隐藏文件,不打开会漏掉 .SRCINFO(唯一元数据文件),
+          # 下游 commit/pr job 就永远拿不到新版本,仓库 .SRCINFO 停在旧版本
+          include-hidden-files: true
           if-no-files-found: error
 
   commit:
