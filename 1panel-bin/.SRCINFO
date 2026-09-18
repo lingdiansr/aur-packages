@@ -1,7 +1,7 @@
 pkgbase = 1panel-bin
 	pkgdesc = 1Panel, a modern open source linux panel (official binary)
-	pkgver = 2.2.5
-	pkgrel = 2
+	pkgver = 2.3.0
+	pkgrel = 1
 	url = https://github.com/1Panel-dev/1Panel
 	install = 1panel-bin.install
 	arch = x86_64
@@ -14,9 +14,9 @@ pkgbase = 1panel-bin
 	conflicts = 1panel
 	conflicts = 1panel-git
 	conflicts = 1panel-dev-bin
-	source_x86_64 = 1panel-v2.2.5-linux-amd64.tar.gz::https://resource.fit2cloud.com/1panel/package/v2/stable/v2.2.5/release/1panel-v2.2.5-linux-amd64.tar.gz
-	sha256sums_x86_64 = e63e06126423a9cada0c55c1758c20d376b1a2091bb6bf12e86b3061c1e48f21
-	source_aarch64 = 1panel-v2.2.5-linux-arm64.tar.gz::https://resource.fit2cloud.com/1panel/package/v2/stable/v2.2.5/release/1panel-v2.2.5-linux-arm64.tar.gz
-	sha256sums_aarch64 = f363b164b0691610ac582bd737201aadc8ed576bffc33a44a567ee1b67d50b0f
+	source_x86_64 = 1panel-v2.3.0-linux-amd64.tar.gz::https://resource.fit2cloud.com/1panel/package/v2/stable/v2.3.0/release/1panel-v2.3.0-linux-amd64.tar.gz
+	sha256sums_x86_64 = 663b495b648b2c9a5b5d3efcc19b87792e23ed7a554f1a59eb272b27403e38cc
+	source_aarch64 = 1panel-v2.3.0-linux-arm64.tar.gz::https://resource.fit2cloud.com/1panel/package/v2/stable/v2.3.0/release/1panel-v2.3.0-linux-arm64.tar.gz
+	sha256sums_aarch64 = 7ba784caa085c374721fcee6cdad22f24e4c14d2e3d7c15bcdc2dc8ad95365dc
 
 pkgname = 1panel-bin
