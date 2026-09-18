@@ -111,28 +111,11 @@ jobs:
           done
           su -w PKG,flags builder -c 'cd "$PKG" && CI=1 makepkg $flags --noconfirm --noarchive'
       - name: 冒烟测试(包装脚本)
-        # makepkg 成功不代表包装脚本可用:脚本自身的 shell 缺陷(如 s302 曾因
-        # 未匹配 glob + set -e 在 case 分发前静默 exit 2,零输出)只能真跑一次才发现。
+        # makepkg 成功不代表包装脚本可用;测试内容与判据见 scripts/smoke-steamcommunity302.sh。
         # 容器里没有 /var/lib/Steamcommunity_302,正好覆盖"数据目录尚未生成"这条路径。
         env:
           PKG: ${{ matrix.pkg }}
-        run: |
-          [[ -f "$PKG/s302" ]] || exit 0   # 只有 steamcommunity302 带 s302
-          out="$(bash "$PKG/s302" help 2>&1)" || {
-            echo "s302 help 退出码 $?,输出: $out"; exit 1; }
-          [[ -n "$out" ]] || { echo "s302 help 无输出"; exit 1; }
-          ver="$(bash "$PKG/s302" version 2>&1)" || {
-            echo "s302 version 退出码 $?;输出: $ver"; exit 1; }
-          [[ "$ver" == *steamcommunity302:* ]] || {
-            echo "s302 version 输出缺包版本行: $ver"; exit 1; }
-          # 首次运行:数据目录为空时必须给出反馈,而不是无声退出(修复前的表现就是静默 exit 2)
-          if msg="$(bash "$PKG/s302" rules list 2>&1)"; then
-            echo "未初始化时 s302 rules list 不应返回成功: $msg"; exit 1
-          fi
-          [[ -n "$msg" ]] || { echo "未初始化时 s302 rules list 没有任何反馈"; exit 1; }
-          echo "$out" | head -3
-          echo "$ver"
-          echo "$msg" | head -2
+        run: scripts/smoke.sh "$PKG"
       - name: 发布到 AUR
         if: ${{ env.PR_MODE == 'false' && env.HAS_AUR_KEY == 'true' }}
         env:

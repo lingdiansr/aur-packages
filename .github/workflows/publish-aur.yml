@@ -37,12 +37,18 @@ jobs:
             echo "AUR_SSH_KEY 未配置,跳过发布"
             exit 0
           fi
+          fail=0
           for pkgdir in */; do
             pkg="${pkgdir%/}"
             [[ -f "$pkgdir/PKGBUILD" ]] || continue  # 非包目录(scripts/.github 等)
             if [[ -f "$pkgdir/.SRCINFO" ]]; then
+              # 发布前冒烟:覆盖"只改包内文件、上游无新版本"这类不会进 update job matrix
+              # 的提交(issue #1 的静默退出就是这样漏到 AUR 的)。冒烟不过则该包不发布,
+              # 其余包继续,最后以非零退出让本次运行变红。
+              scripts/smoke.sh "$pkg" || { echo "$pkg 冒烟测试未通过,跳过发布"; fail=1; continue; }
               scripts/publish.sh "$pkg"
             else
               echo "跳过 $pkg(缺 .SRCINFO,-git 等包不在此流程)"
             fi
           done
+          exit "$fail"
