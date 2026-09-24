@@ -7,7 +7,7 @@
 # 凭据:安装时按官方 install.sh 的 NON_INTERACTIVE 逻辑随机生成端口、安全入口、
 #   用户名、密码(写入 /usr/local/bin/1pctl 与 /opt/1panel/.install-credentials)
 pkgname=1panel-bin
-_upver=v2.3.1
+_upver=v2.3.2
 pkgver=${_upver#v}
 pkgrel=1
 pkgdesc="1Panel, a modern open source linux panel (official binary)"
@@ -27,8 +27,8 @@ source_x86_64=(
 source_aarch64=(
   "1panel-${_upver}-linux-arm64.tar.gz::https://resource.fit2cloud.com/1panel/package/v2/stable/${_upver}/release/1panel-${_upver}-linux-arm64.tar.gz"
 )
-sha256sums_x86_64=('2747c098d235d76dc864fe9458565b5618e6efa3c588503357f4ba2b456fb209')
-sha256sums_aarch64=('b8c842d5c11ff4a991181e91f5155484b7d65149d3fd35923d9aeb7e73602e63')
+sha256sums_x86_64=('f1265a4fadeaab3d7066dd71e3c6904ac54bb687baab1b205a23c369abb61cac')
+sha256sums_aarch64=('e147b2ad27053eaef25db41779368a28d31ca2aa79221b37ce5ed62b9e5fa054')
 
 # 上游包目录/文件名的架构标识:amd64 / arm64
 case "$CARCH" in
