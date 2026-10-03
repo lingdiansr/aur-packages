@@ -3,10 +3,9 @@
 # 运行:nvchecker --file nvchecker.toml --keyfile keyfile.toml
 # 对比:nvcmp --file nvchecker.toml --json
 #
-# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / vscode-config-helper-appimage /
-#           typora-community-plugin
+# GitHub 源:jetbrains-lxgw-nerd-mono-ttf / typora-community-plugin
 # 非 GitHub 源:steamcommunity302 / usbeam-hosts-editor(dogfight360 博客,cmd 脚本解析)
-# 官方 CDN 源:1panel-bin(1Panel v2)
+# 官方 CDN 源:1panel-v2-bin(1Panel v2)
 #
 # 已禁用自动更新:
 #   securelink  — 官网对非浏览器流量返回 406(WAF),下载服务器无目录索引/无 latest
@@ -26,12 +25,6 @@ github = "lvbibir/JetBrainsLxgwNerdMono"
 use_max_tag = true
 prefix = "v"
 
-# 上游 tag 形如 v4.0.10,v4.0.9,...;pkgver 对应去掉 v 的 tag
-[vscode-config-helper-appimage]
-source = "github"
-github = "VSCodeConfigHelper/v4"
-use_max_tag = true
-prefix = "v"
 
 # 上游 tag 即版本号(如 2.10.18,无前缀),release 附 typora-community-plugin.zip
 [typora-community-plugin]
@@ -48,6 +41,6 @@ source = "cmd"
 cmd = "scripts/check-usbeam-hosts-editor.sh | jq -r .pkgver"
 
 # 1Panel v2 官方 CDN(脚本输出 pkgver 与 _upver,后者用于 source URL)
-[1panel-bin]
+[1panel-v2-bin]
 source = "cmd"
 cmd = "scripts/check-1panel-bin.sh | jq -r .pkgver"

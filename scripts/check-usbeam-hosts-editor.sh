@@ -20,7 +20,7 @@ ver="$(
 [[ -n "$ver" ]] || { echo "error: 无法从上游页面提取版本" >&2; exit 1; }
 
 # pkgdate:该版本任意平台文件(如 5.0.1_x64.dmg)所在 uploads 目录
-pattern="$(echo "$ver" | sed 's/\./\\./g')"
+pattern="${ver//./\\.}"
 line="$(
   echo "$page" \
   | grep -oE "uploads/[0-9]{4}/[0-9]{2}/UsbEAm_Hosts_Editor[._]V?${pattern}[^\"' <>]*" \

@@ -1,13 +1,11 @@
-# 每日检查上游版本,自动更新 AUR 包
-# 结构参考:https://github.com/zerx-lab/actions(.github/workflows/check-updates.yml)
-# 版本检测用 nvchecker:https://nvchecker.readthedocs.io/
-# 流程:check(nvchecker 对比 old.json) → update(改 PKGBUILD+构建验证+发 AUR) → commit(更新 old.json 并提交仓库)
+# 每日检查上游版本并提交 AUR 包更新。
+# 流程:check(nvchecker 对比 old.json) → update(改 PKGBUILD+构建验证) →
+# commit(更新 old.json 并推送 main) → publish-aur.yml 发布变更包。
 #
 # 两种运行模式:
-#   - 直推模式(默认):检测到更新后直接推送 main 并发布 AUR
-#   - PR 模式:检测到更新后开 PR(含 PKGBUILD 变更与 old.json 同步),
-#     合并后由 publish-aur.yml 发布 AUR。手动触发用 input 显式指定,
-#     定时任务由仓库变量 PR_MODE=true 控制
+#   - 直推模式(默认):检测到更新后直接推送 main,由 publish-aur.yml 发布 AUR。
+#   - PR 模式:检测到更新后开 PR;合并 main 后由 publish-aur.yml 发布 AUR。
+#     手动触发用 input 显式指定,定时任务由仓库变量 PR_MODE=true 控制
 name: 检查并更新 AUR 包
 
 on:
@@ -116,14 +114,6 @@ jobs:
         env:
           PKG: ${{ matrix.pkg }}
         run: scripts/smoke.sh "$PKG"
-      - name: 发布到 AUR
-        if: ${{ env.PR_MODE == 'false' && env.HAS_AUR_KEY == 'true' }}
-        env:
-          PKG: ${{ matrix.pkg }}
-          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-          AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
-          AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
-        run: scripts/publish.sh "$PKG"
       - name: 清理构建产物
         # 只保留 git 追踪的包脚本(PKGBUILD/.SRCINFO/install/本地 source),
         # 删除构建残留(src/ pkg/ 下载的源码归档等)。构建验证已在 CI 完成,

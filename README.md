@@ -7,10 +7,10 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 | 包名 | 说明 | 版本检测 |
 |---|---|---|
 | [steamcommunity302](https://aur.archlinux.org/packages/steamcommunity302) | 羽翼城制作的 Steam/GitHub 反代加速工具(`s302` 启动) | dogfight360 博客(脚本解析) |
-| [1panel-bin](https://aur.archlinux.org/packages/1panel-bin) | 1Panel 开源 Linux 服务器运维面板官方二进制 | 官方 CDN |
+| [1panel-v2-bin](https://aur.archlinux.org/packages/1panel-v2-bin) | 1Panel v2 开源 Linux 服务器运维面板官方二进制 | 官方 CDN |
 | [usbeam-hosts-editor](https://aur.archlinux.org/packages/usbeam-hosts-editor) | 羽翼城制作的 UsbEAm Hosts Editor(`uhe` 启动) | dogfight360 博客(脚本解析) |
 | [jetbrains-lxgw-nerd-mono-ttf](https://aur.archlinux.org/packages/jetbrains-lxgw-nerd-mono-ttf) | JetBrains Mono + 霞鹜文楷合并 Nerd Font(2:1 CJK 比例) | GitHub tag |
-| [vscode-config-helper-appimage](https://aur.archlinux.org/packages/vscode-config-helper-appimage) | VS Code C++ 配置器 AppImage | GitHub tag |
+| [dsh-desktop-linux-bin](https://aur.archlinux.org/packages/dsh-desktop-linux-bin) | DeepSeek Harness 桌面端 Linux 预构建包 | 手动更新 |
 | [securelink](https://aur.archlinux.org/packages/securelink) | 网宿 SecureLink SDP/零信任客户端(Ubuntu GUI 版) | 手动更新(官网 WAF 无版本锚点) |
 | [typora-community-plugin](https://aur.archlinux.org/packages/typora-community-plugin) | Typora 社区插件系统(插件市场/命令面板/多标签工作区) | GitHub tag |
 
@@ -34,20 +34,21 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 
 ## 自动化更新流程
 
-[check-updates.yml](.github/workflows/check-updates.yml) 每日 UTC 08:00 运行(也可手动触发),分三阶段:
+[check-updates.yml](.github/workflows/check-updates.yml) 每日 UTC 08:00 运行(也可手动触发),分四阶段:
 
 1. **check** — `nvchecker` 对比 `old.json` 检测上游新版本。GitHub 源直接走 API;非 GitHub 源由 `scripts/check-<pkg>.sh` 解析(博客页面、Release asset 名、CDN)。
-2. **update**(按包并行 matrix)— `update-version.sh` 修改 PKGBUILD(含派生变量)、重置 `pkgrel`、重算 sha256sum、重生成 .SRCINFO;随后 `makepkg` 构建验证;通过后发布到 AUR。artifact 只含包脚本(构建产物已清理,用户本地自行构建)。
+2. **update**(按包并行 matrix)— `update-version.sh` 修改 PKGBUILD(含派生变量)、重置 `pkgrel`、重算 sha256sum、重生成 .SRCINFO;随后 `makepkg` 构建验证。artifact 只含包脚本(构建产物已清理,用户本地自行构建)。
 
    依赖本身只在 AUR 上的包(typora-community-plugin → typora)容器里装不上依赖,构建验证自动改用 `--nodeps`,只验证能构建出包。
 3. **commit / pr** — 同步 `old.json` 并提交 main;或按模式开 PR。
+4. **publish** — `publish-aur.yml` 在 main 推送后解析变更的包目录，执行冒烟测试并发布这些包；手动触发时发布全部包。
 
 ### 运行模式
 
 | 模式 | 行为 | 启用方式 |
 |---|---|---|
-| 直推(默认) | 检测到更新 → 构建 → 发布 AUR → 直接提交 main | 不设 `PR_MODE` |
-| PR | 检测到更新 → 开 PR,review 合并后由 `publish-aur.yml` 发布 | 仓库变量 `PR_MODE=true`,或手动触发时勾选 `pr_mode` |
+| 直推(默认) | 检测到更新 → 构建 → 提交 main → 发布变更包到 AUR | 不设 `PR_MODE` |
+| PR | 检测到更新 → 开 PR → review 合并 main → 发布变更包到 AUR | 仓库变量 `PR_MODE=true`,或手动触发时勾选 `pr_mode` |
 
 ## 本地维护
 
@@ -76,3 +77,10 @@ scripts/publish.sh <包名>
 - `PR_MODE` — `true` 时定时任务走 PR 模式
 
 **Workflow 权限**:Settings → Actions → General → *Read and write permissions*(workflow 需推送 main、开 PR)。
+
+## 仓库许可证
+
+本仓库中由维护者编写的打包定义、安装与自动化脚本、CI 和配置文件使用
+[GNU AGPL-3.0-or-later](LICENSE)。各 `PKGBUILD` 的 `license=()` 字段描述其
+所打包上游载荷的许可证，不会因本仓库许可证而改变。发布到 AUR 时仅提交包
+自身所需的文件，不复制本仓库根许可证。

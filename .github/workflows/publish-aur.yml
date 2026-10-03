@@ -1,17 +1,16 @@
-# PR 模式(或手动)合并到 main 后发布 AUR
-# 触发:push 到 main 且涉及任一包目录的 PKGBUILD/.SRCINFO;或手动触发
-# 遍历所有含 PKGBUILD+.SRCINFO 的包调用 publish.sh:
-#   - 不在 AUR 上的包自动跳过(如 vscode-config-helper-appimage)
-#   - 与 AUR 无差异的包自动跳过(幂等)
-#   - 缺 .SRCINFO 的包跳过(如 -git 包,不在此流程)
+# main 合并后发布发生变更的 AUR 包；手动触发时发布全部包。
+# 自动模式从 GitHub push 的 before..sha 范围解析包目录，包内的 install、hook、
+# 启动脚本和本地 source 与 PKGBUILD/.SRCINFO 一样会触发发布。
 name: 发布到 AUR(合并后)
 
 on:
   push:
     branches: [main]
     paths:
-      - "*/PKGBUILD"
-      - "*/.SRCINFO"
+      - "*/**"
+      - "!scripts/**"
+      - "!.github/**"
+      - "!LICENSES/**"
   workflow_dispatch:
 
 permissions:
@@ -27,28 +26,72 @@ jobs:
         run: pacman -Syu --noconfirm --needed openssh git jq
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: 计算待发布包
+        id: packages
+        env:
+          BEFORE: ${{ github.event.before }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [[ "$MANUAL" == true ]]; then
+            mapfile -t packages < <(
+              for pkgdir in */; do
+                pkg="${pkgdir%/}"
+                [[ -f "$pkgdir/PKGBUILD" && -f "$pkgdir/.SRCINFO" ]] && printf '%s\n' "$pkg"
+              done | sort
+            )
+          else
+            declare -A selected=()
+            if [[ "$BEFORE" =~ ^0+$ ]]; then
+              changed_files="$(git ls-tree -r --name-only "$GITHUB_SHA")"
+            else
+              changed_files="$(git diff --name-only "$BEFORE" "$GITHUB_SHA")"
+            fi
+            while IFS= read -r path; do
+              [[ "$path" == */* ]] || continue
+              pkg="${path%%/*}"
+              [[ -f "$pkg/PKGBUILD" && -f "$pkg/.SRCINFO" ]] || continue
+              selected["$pkg"]=1
+            done <<< "$changed_files"
+            if ((${#selected[@]} > 0)); then
+              mapfile -t packages < <(printf '%s\n' "${!selected[@]}" | sort)
+            else
+              packages=()
+            fi
+          fi
+
+          if ((${#packages[@]} == 0)); then
+            echo "has_packages=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "has_packages=true"
+            echo "packages<<EOF"
+            printf '%s\n' "${packages[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: 发布有变更的包
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
           AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
+          HAS_PACKAGES: ${{ steps.packages.outputs.has_packages }}
+          PACKAGES: ${{ steps.packages.outputs.packages }}
         run: |
+          if [[ "$HAS_PACKAGES" != true ]]; then
+            echo "没有需要发布的包"
+            exit 0
+          fi
           if [[ -z "${AUR_SSH_KEY:-}" ]]; then
             echo "AUR_SSH_KEY 未配置,跳过发布"
             exit 0
           fi
+
           fail=0
-          for pkgdir in */; do
-            pkg="${pkgdir%/}"
-            [[ -f "$pkgdir/PKGBUILD" ]] || continue  # 非包目录(scripts/.github 等)
-            if [[ -f "$pkgdir/.SRCINFO" ]]; then
-              # 发布前冒烟:覆盖"只改包内文件、上游无新版本"这类不会进 update job matrix
-              # 的提交(issue #1 的静默退出就是这样漏到 AUR 的)。冒烟不过则该包不发布,
-              # 其余包继续,最后以非零退出让本次运行变红。
-              scripts/smoke.sh "$pkg" || { echo "$pkg 冒烟测试未通过,跳过发布"; fail=1; continue; }
-              scripts/publish.sh "$pkg"
-            else
-              echo "跳过 $pkg(缺 .SRCINFO,-git 等包不在此流程)"
-            fi
-          done
+          while IFS= read -r pkg; do
+            scripts/smoke.sh "$pkg" || { echo "$pkg 冒烟测试未通过,跳过发布"; fail=1; continue; }
+            scripts/publish.sh "$pkg"
+          done <<< "$PACKAGES"
           exit "$fail"
