@@ -40,7 +40,7 @@ post_install() {
         -e "s|^ORIGINAL_ENTRANCE=.*|ORIGINAL_ENTRANCE=${PANEL_ENTRANCE}|" \
         -e "s|^ORIGINAL_USERNAME=.*|ORIGINAL_USERNAME=${PANEL_USERNAME}|" \
         -e "s|^ORIGINAL_PASSWORD=.*|ORIGINAL_PASSWORD=${PANEL_PASSWORD}|" \
-        /usr/local/bin/1pctl
+        /usr/bin/1pctl
 
     # 持久化凭据供升级时恢复(1pctl 在升级时会被 pacman 覆盖)
     printf 'ORIGINAL_PORT=%s\nORIGINAL_ENTRANCE=%s\nORIGINAL_USERNAME=%s\nORIGINAL_PASSWORD=%s\n' \
@@ -71,7 +71,7 @@ post_upgrade() {
             -e "s|^ORIGINAL_ENTRANCE=.*|ORIGINAL_ENTRANCE=${ORIGINAL_ENTRANCE}|" \
             -e "s|^ORIGINAL_USERNAME=.*|ORIGINAL_USERNAME=${ORIGINAL_USERNAME}|" \
             -e "s|^ORIGINAL_PASSWORD=.*|ORIGINAL_PASSWORD=${ORIGINAL_PASSWORD}|" \
-            /usr/local/bin/1pctl
+            /usr/bin/1pctl
         LOCAL_IP=$(_1panel_get_local_ip)
         echo "==> 1Panel 升级完成,已恢复现有凭据"
         echo "    访问地址: http://${LOCAL_IP}:${ORIGINAL_PORT}/${ORIGINAL_ENTRANCE}"
