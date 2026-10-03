@@ -30,38 +30,55 @@ jobs:
           fetch-depth: 0
       - name: 计算待发布包
         id: packages
+        shell: bash
         env:
           BEFORE: ${{ github.event.before }}
           MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
-          if [[ "$MANUAL" == true ]]; then
-            mapfile -t packages < <(
-              for pkgdir in */; do
-                pkg="${pkgdir%/}"
-                [[ -f "$pkgdir/PKGBUILD" && -f "$pkgdir/.SRCINFO" ]] && printf '%s\n' "$pkg"
-              done | sort
-            )
-          else
-            declare -A selected=()
-            if [[ "$BEFORE" =~ ^0+$ ]]; then
-              changed_files="$(git ls-tree -r --name-only "$GITHUB_SHA")"
-            else
-              changed_files="$(git diff --name-only "$BEFORE" "$GITHUB_SHA")"
-            fi
+          # 收集所有含 PKGBUILD+.SRCINFO 的包目录
+          select_all() {
+            for pkgdir in */; do
+              local pkg="${pkgdir%/}"
+              [[ -f "$pkgdir/PKGBUILD" && -f "$pkgdir/.SRCINFO" ]] || continue
+              selected["$pkg"]=1
+            done
+          }
+
+          # 从文件列表收集所属的包目录
+          select_from_files() {
+            local path pkg
             while IFS= read -r path; do
               [[ "$path" == */* ]] || continue
               pkg="${path%%/*}"
               [[ -f "$pkg/PKGBUILD" && -f "$pkg/.SRCINFO" ]] || continue
               selected["$pkg"]=1
-            done <<< "$changed_files"
-            if ((${#selected[@]} > 0)); then
-              mapfile -t packages < <(printf '%s\n' "${!selected[@]}" | sort)
+            done
+          }
+
+          declare -A selected=()
+          changed_files=""
+
+          if [[ "$MANUAL" == true ]]; then
+            select_all
+          else
+            if [[ "$BEFORE" =~ ^0+$ ]]; then
+              # 分支首次推送:整个 head 树都是新的
+              changed_files="$(git ls-tree -r --name-only "$GITHUB_SHA" 2>/dev/null || true)"
             else
-              packages=()
+              changed_files="$(git diff --name-only "$BEFORE" "$GITHUB_SHA" 2>/dev/null || true)"
+            fi
+
+            if [[ -n "$changed_files" ]]; then
+              select_from_files <<< "$changed_files"
+            else
+              # 对比失败(force push、浅历史、对象缺失)时退回发布全部:
+              # publish.sh 幂等,多发布几个包没有代价,漏发布才是问题
+              echo "无法确定 $BEFORE..$GITHUB_SHA 的变更范围,改为发布全部包。" >&2
+              select_all
             fi
           fi
 
-          if ((${#packages[@]} == 0)); then
+          if ((${#selected[@]} == 0)); then
             echo "has_packages=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -69,10 +86,11 @@ jobs:
           {
             echo "has_packages=true"
             echo "packages<<EOF"
-            printf '%s\n' "${packages[@]}"
+            printf '%s\n' "${!selected[@]}" | sort
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
       - name: 发布有变更的包
+        shell: bash
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
           AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
