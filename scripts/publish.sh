@@ -136,7 +136,11 @@ if git diff --quiet && git diff --cached --quiet && [[ -z "$(git ls-files --othe
   exit 0
 fi
 
-version=$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2)
+# .SRCINFO 的 pkgver 已展开派生变量(如 pkgver=${_upver#v}),PKGBUILD 可能是原样字面量
+version="$(sed -n 's/^[[:space:]]*pkgver = //p' .SRCINFO | head -1)"
+if [[ -z "$version" ]]; then
+  version="$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2)"
+fi
 git add -A
 git commit -m "Update to $version"
 git push
