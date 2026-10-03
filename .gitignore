@@ -14,6 +14,7 @@ pkg/
 .playwright-mcp/
 # workflow 下载的 artifact 副本(commit/pr job 恢复后即删除,防止误提交)
 .artifacts/
+1panel-v2-bin/1panel-LICENSE
 
 # nvchecker 运行产物
 new.json
