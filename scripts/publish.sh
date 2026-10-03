@@ -20,6 +20,11 @@ if [[ ! -f "$pkgdir/PKGBUILD" ]] || [[ ! -f "$pkgdir/.SRCINFO" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$REPO_ROOT/LICENSE" ]]; then
+  echo "error: 仓库根目录缺少 LICENSE" >&2
+  exit 1
+fi
+
 # AUR 上不存在的包跳过(上传 AUR 后自动生效)
 if ! curl -fsSL "https://aur.archlinux.org/rpc/v5/info?arg[]=$pkg" | jq -e '.resultcount > 0' >/dev/null 2>&1; then
   echo "$pkg 不在 AUR 上,跳过发布"
@@ -74,6 +79,7 @@ git -C "$tmp/$pkg" checkout -B master 2>/dev/null || true
 
 cp "$pkgdir/PKGBUILD" "$tmp/$pkg/"
 cp "$pkgdir/.SRCINFO" "$tmp/$pkg/"
+cp "$REPO_ROOT/LICENSE" "$tmp/$pkg/LICENSE"
 
 # 收集包所需的本地文件:source 中非 URL 项 + install/changelog
 # 从 .SRCINFO 读取(AUR 服务端 hook 检查的正是这些)
