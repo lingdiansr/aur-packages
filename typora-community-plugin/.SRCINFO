@@ -1,18 +1,18 @@
 pkgbase = typora-community-plugin
 	pkgdesc = Typora 社区插件系统:插件市场、命令面板、多标签工作区
-	pkgver = 2.10.39
+	pkgver = 2.10.42
 	pkgrel = 1
 	url = https://github.com/typora-community-plugin/typora-community-plugin
 	install = typora-community-plugin.install
 	arch = any
 	license = MIT
 	depends = typora>=1.14.9
-	noextract = typora-community-plugin-2.10.39.zip
-	source = typora-community-plugin-2.10.39.zip::https://github.com/typora-community-plugin/typora-community-plugin/releases/download/2.10.39/typora-community-plugin.zip
-	source = LICENSE.md::https://raw.githubusercontent.com/typora-community-plugin/typora-community-plugin/2.10.39/LICENSE.md
+	noextract = typora-community-plugin-2.10.42.zip
+	source = typora-community-plugin-2.10.42.zip::https://github.com/typora-community-plugin/typora-community-plugin/releases/download/2.10.42/typora-community-plugin.zip
+	source = LICENSE.md::https://raw.githubusercontent.com/typora-community-plugin/typora-community-plugin/2.10.42/LICENSE.md
 	source = typora-community-plugin.sh
 	source = typora-community-plugin.hook
-	sha256sums = d4f80f2d734d83f561224dae0fe60a5e36cbdc5cca5b982988e53d18ca16b2be
+	sha256sums = 4e4d301d7f424e4d809072d81529fdf8c0a12a7250e207a7e0777c31d6108b74
 	sha256sums = 731f5be0037576f31f566458da9817c261db3e8b8c5fc4703841005d5ac53823
 	sha256sums = ccafa03d4982da3ca3eaebea538bd64d472383dd743b962c71bac0d02e038a62
 	sha256sums = 4a4cefac90a4fdf9ce3987ddd7819c00c28b5a99812a1997ff086bea5121d680
