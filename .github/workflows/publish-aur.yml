@@ -1,6 +1,8 @@
-# main 合并后发布发生变更的 AUR 包；手动触发时发布全部包。
+# main 合并后、自动更新直推后发布发生变更的 AUR 包；手动触发时发布全部包。
 # 自动模式从 GitHub push 的 before..sha 范围解析包目录，包内的 install、hook、
 # 启动脚本和本地 source 与 PKGBUILD/.SRCINFO 一样会触发发布。
+# workflow_call 供 check-updates.yml 在 GITHUB_TOKEN 推送后直接调用；该推送不会
+# 再触发 push workflow。
 name: 发布到 AUR(合并后)
 
 on:
@@ -12,6 +14,23 @@ on:
       - "!.github/**"
       - "!LICENSES/**"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      packages:
+        description: "待发布包的 JSON matrix"
+        required: false
+        type: string
+      ref:
+        description: "要发布的仓库提交"
+        required: false
+        type: string
+    secrets:
+      AUR_SSH_KEY:
+        required: false
+      AUR_USER_NAME:
+        required: false
+      AUR_USER_EMAIL:
+        required: false
 
 permissions:
   contents: read
@@ -23,17 +42,20 @@ jobs:
     container: archlinux:base-devel
     steps:
       - name: 安装工具
-        run: pacman -Syu --noconfirm --needed openssh git jq
+        run: pacman -Syu --noconfirm --needed curl openssh git jq
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          ref: ${{ inputs.ref || github.sha }}
       - name: 计算待发布包
         id: packages
         shell: bash
         env:
           BEFORE: ${{ github.event.before }}
           MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
+          CALLED: ${{ github.event_name == 'workflow_call' }}
+          CALLED_PACKAGES: ${{ inputs.packages }}
         run: |
           # 收集所有含 PKGBUILD+.SRCINFO 的包目录
           select_all() {
@@ -58,7 +80,16 @@ jobs:
           declare -A selected=()
           changed_files=""
 
-          if [[ "$MANUAL" == true ]]; then
+          if [[ "$CALLED" == true ]]; then
+            while IFS= read -r pkg; do
+              [[ -n "$pkg" ]] || continue
+              [[ -f "$pkg/PKGBUILD" && -f "$pkg/.SRCINFO" ]] || {
+                echo "workflow_call 指定的包不存在或缺少 PKGBUILD/.SRCINFO: $pkg" >&2
+                exit 1
+              }
+              selected["$pkg"]=1
+            done < <(jq -r '.include[]?.pkg' <<< "$CALLED_PACKAGES")
+          elif [[ "$MANUAL" == true ]]; then
             select_all
           else
             if [[ "$BEFORE" =~ ^0+$ ]]; then
@@ -103,8 +134,8 @@ jobs:
             exit 0
           fi
           if [[ -z "${AUR_SSH_KEY:-}" ]]; then
-            echo "AUR_SSH_KEY 未配置,跳过发布"
-            exit 0
+            echo "error: AUR_SSH_KEY 未配置,无法发布" >&2
+            exit 1
           fi
 
           fail=0

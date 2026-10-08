@@ -136,6 +136,8 @@ jobs:
     name: 提交更新到仓库
     needs: [check, update]
     if: needs.check.outputs.has_updates == 'true' && needs.check.outputs.pr_mode == 'false'
+    outputs:
+      commit_sha: ${{ steps.push.outputs.commit_sha }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -169,6 +171,7 @@ jobs:
               f.write('\n')
           PY
       - name: 提交并推送
+        id: push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -180,6 +183,20 @@ jobs:
             git commit -m "更新 AUR 包到上游最新版本"
             git push
           fi
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: 直推更新到 AUR
+    needs: [check, update, commit]
+    if: needs.check.outputs.has_updates == 'true' && needs.check.outputs.pr_mode == 'false'
+    uses: ./.github/workflows/publish-aur.yml
+    with:
+      packages: ${{ needs.check.outputs.matrix }}
+      ref: ${{ needs.commit.outputs.commit_sha }}
+    secrets:
+      AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+      AUR_USER_NAME: ${{ secrets.AUR_USER_NAME }}
+      AUR_USER_EMAIL: ${{ secrets.AUR_USER_EMAIL }}
 
   pr:
     name: 创建更新 PR

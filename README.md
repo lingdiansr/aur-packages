@@ -28,8 +28,8 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 ├── old.json              # 各包已跟踪的版本(增量检测基准)
 ├── new.json              # nvchecker 运行产物(gitignore)
 └── .github/workflows/
-    ├── check-updates.yml # 每日检测 + 自动更新 + 发布
-    └── publish-aur.yml   # PR 合并到 main 后发布
+    ├── check-updates.yml # 每日检测 + 自动更新 + 直推后发布
+    └── publish-aur.yml   # main 推送/PR 合并后发布,也可被更新流程直接调用
 ```
 
 ## 自动化更新流程
@@ -41,7 +41,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 
    依赖本身只在 AUR 上的包(typora-community-plugin → typora)容器里装不上依赖,构建验证自动改用 `--nodeps`,只验证能构建出包。
 3. **commit / pr** — 同步 `old.json` 并提交 main;或按模式开 PR。
-4. **publish** — `publish-aur.yml` 在 main 推送后解析变更的包目录，执行冒烟测试并发布这些包；手动触发时发布全部包。
+4. **publish** — 直推模式由 `check-updates.yml` 在提交后直接调用 `publish-aur.yml`; GitHub Actions 的 `GITHUB_TOKEN` 推送不会再次触发 `push` workflow。PR 模式由 main 合并后的 push 触发发布；手动触发时发布全部包。
 
 ### 运行模式
 
