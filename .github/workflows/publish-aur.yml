@@ -53,8 +53,8 @@ jobs:
         shell: bash
         env:
           BEFORE: ${{ github.event.before }}
-          MANUAL: ${{ github.event_name == 'workflow_dispatch' }}
-          CALLED: ${{ github.event_name == 'workflow_call' }}
+          MANUAL: ${{ github.event_name == 'workflow_dispatch' && inputs.packages == '' }}
+          CALLED: ${{ inputs.packages != '' }}
           CALLED_PACKAGES: ${{ inputs.packages }}
         run: |
           # 收集所有含 PKGBUILD+.SRCINFO 的包目录
