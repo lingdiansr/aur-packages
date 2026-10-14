@@ -10,7 +10,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 | [1panel-v2-bin](https://aur.archlinux.org/packages/1panel-v2-bin) | 1Panel v2 开源 Linux 服务器运维面板官方二进制 | 官方 CDN |
 | [usbeam-hosts-editor](https://aur.archlinux.org/packages/usbeam-hosts-editor) | 羽翼城制作的 UsbEAm Hosts Editor(`uhe` 启动) | dogfight360 博客(脚本解析) |
 | [jetbrains-lxgw-nerd-mono-ttf](https://aur.archlinux.org/packages/jetbrains-lxgw-nerd-mono-ttf) | JetBrains Mono + 霞鹜文楷合并 Nerd Font(2:1 CJK 比例) | GitHub tag |
-| [dsh-desktop-linux-bin](https://aur.archlinux.org/packages/dsh-desktop-linux-bin) | DeepSeek Harness 桌面端 Linux 预构建包 | 手动更新 |
+| [dsh-desktop-linux-bin](https://aur.archlinux.org/packages/dsh-desktop-linux-bin) | DeepSeek Harness 桌面端 Linux 预构建包 | GitHub Release deb 产物(脚本解析) |
 | [securelink](https://aur.archlinux.org/packages/securelink) | 网宿 SecureLink SDP/零信任客户端(Ubuntu GUI 版) | 手动更新(官网 WAF 无版本锚点) |
 | [typora-community-plugin](https://aur.archlinux.org/packages/typora-community-plugin) | Typora 社区插件系统(插件市场/命令面板/多标签工作区) | GitHub tag |
 
@@ -20,7 +20,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 .
 ├── <包名>/               # 每个包一个目录:PKGBUILD + .SRCINFO + install 等
 ├── scripts/
-│   ├── check-<pkg>.sh    # 非 GitHub 源的版本检测脚本,输出更新变量 JSON
+│   ├── check-<pkg>.sh    # 需要额外解析的源的版本检测脚本(Release asset 名/博客/CDN)
 │   ├── update-version.sh # 改版本、重置 pkgrel、重算校验和、重生成 .SRCINFO
 │   ├── apply-updates.py  # 将更新 JSON 的 key 应用到 PKGBUILD
 │   └── publish.sh        # 推送包到 AUR(幂等,无差异自动跳过)
@@ -36,7 +36,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 
 [check-updates.yml](.github/workflows/check-updates.yml) 每日 UTC 08:00 运行(也可手动触发),分四阶段:
 
-1. **check** — `nvchecker` 对比 `old.json` 检测上游新版本。GitHub 源直接走 API;非 GitHub 源由 `scripts/check-<pkg>.sh` 解析(博客页面、Release asset 名、CDN)。
+1. **check** — `nvchecker` 对比 `old.json` 检测上游新版本。GitHub tag 源直接走 API;需要额外解析的源(Release asset 名、博客页面、CDN)由 `scripts/check-<pkg>.sh` 给出。
 2. **update**(按包并行 matrix)— `update-version.sh` 修改 PKGBUILD(含派生变量)、重置 `pkgrel`、重算 sha256sum、重生成 .SRCINFO;随后 `makepkg` 构建验证。artifact 只含包脚本(构建产物已清理,用户本地自行构建)。
 
    依赖本身只在 AUR 上的包(typora-community-plugin → typora)容器里装不上依赖,构建验证自动改用 `--nodeps`,只验证能构建出包。

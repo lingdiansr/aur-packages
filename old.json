@@ -15,6 +15,9 @@
     },
     "typora-community-plugin": {
       "version": "2.10.67"
+    },
+    "dsh-desktop-linux-bin": {
+      "version": "0.2.1alpha.2"
     }
   }
 }
