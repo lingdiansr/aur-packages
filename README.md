@@ -12,6 +12,7 @@ lingdiansr 维护的 AUR 包集合。单一 git 仓库统一管理全部包源�
 | [jetbrains-lxgw-nerd-mono-ttf](https://aur.archlinux.org/packages/jetbrains-lxgw-nerd-mono-ttf) | JetBrains Mono + 霞鹜文楷合并 Nerd Font(2:1 CJK 比例) | GitHub tag |
 | [dsh-desktop-linux-bin](https://aur.archlinux.org/packages/dsh-desktop-linux-bin) | DeepSeek Harness 桌面端 Linux 预构建包 | GitHub Release deb 产物(脚本解析) |
 | [securelink](https://aur.archlinux.org/packages/securelink) | 网宿 SecureLink SDP/零信任客户端(Ubuntu GUI 版) | 手动更新(官网 WAF 无版本锚点) |
+| [libfprint-fpc-disum](https://aur.archlinux.org/packages/libfprint-fpc-disum) | libfprint with the FPC Disum 10a5:9201 fingerprint driver | GitHub tag |
 | [typora-community-plugin](https://aur.archlinux.org/packages/typora-community-plugin) | Typora 社区插件系统(插件市场/命令面板/多标签工作区) | GitHub tag |
 
 ## 目录结构

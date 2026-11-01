@@ -81,6 +81,12 @@ cp "$pkgdir/PKGBUILD" "$tmp/$pkg/"
 cp "$pkgdir/.SRCINFO" "$tmp/$pkg/"
 # 仓库根 LICENSE 仅适用于打包辅助代码；仅保留 .SRCINFO 声明的包本地许可证。
 rm -f "$tmp/$pkg/LICENSE"
+if [[ -f "$pkgdir/LICENSE" ]]; then
+  cp "$pkgdir/LICENSE" "$tmp/$pkg/"
+fi
+if [[ -f "$pkgdir/REUSE.toml" ]]; then
+  cp "$pkgdir/REUSE.toml" "$tmp/$pkg/"
+fi
 # 收集包所需的本地文件:source 中非 URL 项 + install/changelog
 # 从 .SRCINFO 读取(AUR 服务端 hook 检查的正是这些)
 if ! wanted_raw=$(

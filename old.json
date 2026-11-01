@@ -18,6 +18,9 @@
     },
     "dsh-desktop-linux-bin": {
       "version": "0.2.2alpha.2"
+    },
+    "libfprint-fpc-disum": {
+      "version": "1.94.100_fpc1"
     }
   }
 }

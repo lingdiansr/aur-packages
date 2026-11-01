@@ -7,6 +7,8 @@
 # 非 GitHub 源:steamcommunity302 / usbeam-hosts-editor(dogfight360 博客,cmd 脚本解析)
 # 官方 CDN 源:1panel-v2-bin(1Panel v2)
 # GitHub Release 产物源:dsh-desktop-linux-bin(tag 与 asset 名各自含版本,cmd 脚本解析)
+# GitHub tag source: libfprint-fpc-disum (tag hyphen mapped to pkgver underscore)
+
 #
 # 已禁用自动更新:
 #   securelink  — 官网对非浏览器流量返回 406(WAF),下载服务器无目录索引/无 latest
@@ -51,3 +53,8 @@ cmd = "scripts/check-1panel-bin.sh | jq -r .pkgver"
 [dsh-desktop-linux-bin]
 source = "cmd"
 cmd = "scripts/check-dsh-desktop-linux-bin.sh | jq -r .pkgver"
+
+# Commit-derived version keeps snapshot updates monotonic by UTC commit time.
+[libfprint-fpc-disum]
+source = "cmd"
+cmd = "scripts/check-libfprint-fpc-disum.sh | jq -r .pkgver"

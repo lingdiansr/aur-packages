@@ -32,3 +32,9 @@ path = "dsh-desktop-linux-bin/LICENSE"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 DeepSeek"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "libfprint-fpc-disum/LICENSE"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 lingdianshiren <ldsrwu@foxmail.com>"
+SPDX-License-Identifier = "0BSD"
