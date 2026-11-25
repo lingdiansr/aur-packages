@@ -8,6 +8,7 @@
 # 官方 CDN 源:1panel-v2-bin(1Panel v2)
 # GitHub Release 产物源:dsh-desktop-linux-bin(tag 与 asset 名各自含版本,cmd 脚本解析)
 # GitHub tag source: libfprint-fpc-disum (tag hyphen mapped to pkgver underscore)
+# GitHub tag source: srun-portal-bin (tag v<ver>, release asset name derives from pkgver)
 
 #
 # 已禁用自动更新:
@@ -58,3 +59,9 @@ cmd = "scripts/check-dsh-desktop-linux-bin.sh | jq -r .pkgver"
 [libfprint-fpc-disum]
 source = "cmd"
 cmd = "scripts/check-libfprint-fpc-disum.sh | jq -r .pkgver"
+
+# 上游 tag 形如 v0.1.0,Release 资产名与 PKGBUILD 的 source 同源(pkgver 直接来自 tag),
+# 因此走 check 脚本以便将来资产命名变化时只改一处;pv 输出 pkgver,PKBUILD 用 $pkgver 派生 URL
+[srun-portal-bin]
+source = "cmd"
+cmd = "scripts/check-srun-portal-bin.sh | jq -r .pkgver"

@@ -21,6 +21,9 @@
     },
     "libfprint-fpc-disum": {
       "version": "1.94.100_fpc1"
+    },
+    "srun-portal-bin": {
+      "version": "0.1.0"
     }
   }
 }

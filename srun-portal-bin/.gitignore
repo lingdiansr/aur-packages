@@ -1,0 +1,8 @@
+# 根 .gitignore 覆盖不到本包的两个下载物(Release 里的裸 ELF 没有扩展名,LICENSE
+# 也没有),而 CI 构建后用 `git clean -fdX` 只删被忽略的文件 —— 漏掉这两条会把
+# 4 MiB 的 ELF 与一份上游 LICENSE 副本当成包文件提交。
+#
+# LICENSE 不入库:.SRCINFO 里它是 URL source,构建时从上游取且校验 sha256;
+# 本包 license 是 AGPL-3.0-or-later(Arch 的 common license),AUR 无需随包附带副本。
+srun-portal-v*-x86_64-unknown-linux-gnu
+LICENSE
