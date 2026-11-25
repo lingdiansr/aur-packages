@@ -172,6 +172,8 @@ jobs:
           PY
       - name: 提交并推送
         id: push
+        env:
+          MATRIX: ${{ needs.check.outputs.matrix }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -180,7 +182,10 @@ jobs:
           if git diff --cached --quiet; then
             echo "无变更,跳过提交"
           else
-            git commit -m "更新 AUR 包到上游最新版本"
+            # 提交信息带上本次更新的包名:同一分支天天出现同名提交时,
+            # 只能靠点开 diff 才知道改了哪些包
+            pkgs="$(jq -r '[.include[].pkg] | join(", ")' <<< "$MATRIX")"
+            git commit -m "更新 AUR 包到上游最新版本: $pkgs"
             git push
           fi
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
@@ -248,7 +253,7 @@ jobs:
             echo "无变更,跳过"
             echo "BRANCH=" >> "$GITHUB_ENV"
           else
-            git commit -m "更新 AUR 包到上游最新版本"
+            git commit -m "更新 AUR 包到上游最新版本: $(jq -r '[.include[].pkg] | join(", ")' <<< "$MATRIX")"
             git push origin "$branch"
             echo "BRANCH=$branch" >> "$GITHUB_ENV"
           fi
@@ -262,5 +267,5 @@ jobs:
           gh pr create \
             --base main \
             --head "$BRANCH" \
-            --title "更新 AUR 包到上游最新版本" \
+            --title "更新 AUR 包到上游最新版本: $(jq -r '[.include[].pkg] | join(", ")' <<< "$MATRIX")" \
             --body "检测到以下包有新版本:${body:+$'\n\n'$body}"
